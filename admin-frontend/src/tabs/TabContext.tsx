@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { useLocation, useNavigate, type Location } from 'react-router-dom'
 import { useToast } from '../components/Toast'
-import { HOME_TAB_KEY, MAX_TABS } from './constants'
+import { HOME_TAB_KEY, LIST_TAB_PATHS, MAX_TABS } from './constants'
 import { getRouteTitle } from './routeTitles'
 import { getDefaultTabs, loadStoredTabs, saveStoredTabs } from './tabStorage'
 
@@ -41,6 +41,46 @@ function locationKey(loc: Pick<Location, 'pathname' | 'search'>) {
   return loc.pathname + loc.search
 }
 
+function tabKey(loc: Pick<Location, 'pathname' | 'search'>) {
+  if (LIST_TAB_PATHS.has(loc.pathname)) {
+    return loc.pathname
+  }
+  return locationKey(loc)
+}
+
+function normalizeTab(tab: AdminTab): AdminTab {
+  const { pathname } = parseTabPath(tab.path)
+  if (!LIST_TAB_PATHS.has(pathname)) {
+    return tab
+  }
+  return { ...tab, key: pathname }
+}
+
+function normalizeTabs(tabs: AdminTab[]): AdminTab[] {
+  const latest = new Map<string, AdminTab>()
+  for (const tab of tabs) {
+    const n = normalizeTab(tab)
+    latest.set(n.key, n)
+  }
+  const seen = new Set<string>()
+  const out: AdminTab[] = []
+  for (const tab of tabs) {
+    const n = normalizeTab(tab)
+    if (seen.has(n.key)) continue
+    seen.add(n.key)
+    out.push(latest.get(n.key)!)
+  }
+  return out
+}
+
+function normalizeActiveKey(raw: string, tabs: AdminTab[]): string {
+  const { pathname } = parseTabPath(raw.startsWith('/') ? raw : `/${raw}`)
+  if (LIST_TAB_PATHS.has(pathname)) {
+    return tabs.some((t) => t.key === pathname) ? pathname : tabs[0]?.key ?? HOME_TAB_KEY
+  }
+  return tabs.some((t) => t.key === raw) ? raw : tabs[0]?.key ?? HOME_TAB_KEY
+}
+
 function parseTabPath(path: string): { pathname: string; search: string } {
   const q = path.indexOf('?')
   if (q === -1) return { pathname: path || '/', search: '' }
@@ -48,10 +88,11 @@ function parseTabPath(path: string): { pathname: string; search: string } {
 }
 
 function createTab(loc: Location): AdminTab {
-  const key = locationKey(loc)
+  const key = tabKey(loc)
+  const path = locationKey(loc)
   return {
     key,
-    path: key,
+    path,
     title: getRouteTitle(loc.pathname, loc.search),
     closable: key !== HOME_TAB_KEY,
     locationState: loc.state,
@@ -71,8 +112,12 @@ export function TabProvider({ children, enabled }: Props) {
   const stored = loadStoredTabs()
   const defaults = getDefaultTabs()
 
-  const [tabs, setTabs] = useState<AdminTab[]>(() => stored?.tabs ?? defaults.tabs)
-  const [activeKey, setActiveKey] = useState(() => stored?.activeKey ?? defaults.activeKey)
+  const [tabs, setTabs] = useState<AdminTab[]>(() =>
+    normalizeTabs(stored?.tabs ?? defaults.tabs),
+  )
+  const [activeKey, setActiveKey] = useState(() =>
+    normalizeActiveKey(stored?.activeKey ?? defaults.activeKey, normalizeTabs(stored?.tabs ?? defaults.tabs)),
+  )
 
   const activeKeyRef = useRef(activeKey)
   activeKeyRef.current = activeKey
@@ -84,7 +129,8 @@ export function TabProvider({ children, enabled }: Props) {
   useEffect(() => {
     if (!enabled) return
 
-    const key = locationKey(location)
+    const key = tabKey(location)
+    const path = locationKey(location)
 
     setTabs((prev) => {
       const idx = prev.findIndex((t) => t.key === key)
@@ -92,6 +138,7 @@ export function TabProvider({ children, enabled }: Props) {
         const next = [...prev]
         next[idx] = {
           ...next[idx],
+          path,
           locationState: location.state,
         }
         return next

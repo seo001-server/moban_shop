@@ -26,7 +26,6 @@ type Querier interface {
 	AdminCountUsersYesterday(ctx context.Context) (int64, error)
 	AdminDailyNewOrders(ctx context.Context) ([]AdminDailyNewOrdersRow, error)
 	AdminDailyNewUsers(ctx context.Context) ([]AdminDailyNewUsersRow, error)
-	AdminDailyPaidRevenue(ctx context.Context) ([]AdminDailyPaidRevenueRow, error)
 	AdminCreateBusiness(ctx context.Context, arg AdminCreateBusinessParams) (sql.Result, error)
 	AdminCreateProduct(ctx context.Context, arg AdminCreateProductParams) (sql.Result, error)
 	AdminDeleteBusiness(ctx context.Context, id uint64) error

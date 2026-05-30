@@ -64,57 +64,53 @@ export function AdminSettingsPanel({ admin, onUpdated, onClose }: AdminSettingsP
   }
 
   return (
-    <div className="stack">
-      <p className="muted small">账号：{admin.account}</p>
-
-      <form className="stack form" onSubmit={onSaveProfile}>
+    <div className="stack admin-settings-panel">
+      <form className="form" onSubmit={onSaveProfile}>
         <div className="form-section">
           <div className="form-section__title">昵称</div>
-          <label>
-            显示昵称
+          <div className="admin-settings-inline-row">
             <input
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               maxLength={32}
+              placeholder="显示昵称"
               required
             />
-          </label>
-        </div>
-        <div className="form-actions row gap">
-          <button type="submit" className="btn primary" disabled={savingProfile}>
-            {savingProfile ? '保存中…' : '保存昵称'}
-          </button>
+            <button type="submit" className="btn primary" disabled={savingProfile}>
+              {savingProfile ? '保存中…' : '保存昵称'}
+            </button>
+          </div>
         </div>
       </form>
 
-      <form className="stack form" onSubmit={onSavePassword}>
+      <form className="form" onSubmit={onSavePassword}>
         <div className="form-section">
           <div className="form-section__title">修改密码</div>
-          <label>
-            原密码
-            <input
-              type="password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </label>
-          <label>
-            新密码（至少 8 位）
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              minLength={8}
-              autoComplete="new-password"
-            />
-          </label>
-        </div>
-        <div className="form-actions row gap">
-          <button type="submit" className="btn" disabled={savingPassword}>
-            {savingPassword ? '提交中…' : '修改密码'}
-          </button>
+          <div className="admin-settings-inline-row admin-settings-inline-row--3">
+            <label>
+              原密码
+              <input
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </label>
+            <label>
+              新密码（至少 8 位）
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </label>
+            <button type="submit" className="btn" disabled={savingPassword}>
+              {savingPassword ? '提交中…' : '修改密码'}
+            </button>
+          </div>
         </div>
       </form>
 

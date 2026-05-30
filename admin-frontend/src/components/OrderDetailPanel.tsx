@@ -117,6 +117,7 @@ export function OrderDetailPanel({ orderId, onUpdated }: OrderDetailPanelProps) 
         <table className="admin-table">
           <thead>
             <tr>
+              <th>商品 ID</th>
               <th>商品</th>
               <th>单价</th>
               <th>数量</th>
@@ -126,6 +127,7 @@ export function OrderDetailPanel({ orderId, onUpdated }: OrderDetailPanelProps) 
           <tbody>
             {(order.items ?? []).map((it) => (
               <tr key={`${it.product_id}-${it.quantity}`}>
+                <td className="muted">{it.product_id}</td>
                 <td>{it.product_title}</td>
                 <td>{formatMoney(it.unit_price_minor, order.currency)}</td>
                 <td>{it.quantity}</td>

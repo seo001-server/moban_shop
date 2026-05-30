@@ -47,16 +47,10 @@ type topProductSalesJSON struct {
 	SalesQty     int64  `json:"sales_qty"`
 }
 
-type dailyAmountJSON struct {
-	Date        string `json:"date"`
-	AmountMinor int64  `json:"amount_minor"`
-}
-
 type dashboardTrendsJSON struct {
 	Days        int                   `json:"days"`
 	Users       []dailyCountJSON      `json:"users"`
 	Orders      []dailyCountJSON      `json:"orders"`
-	Revenue     []dailyAmountJSON     `json:"revenue"`
 	Summary     trendSummaryJSON      `json:"summary"`
 	TopProducts []topProductSalesJSON `json:"top_products"`
 }
@@ -103,28 +97,6 @@ func dailyOrdersMap(rows []db.AdminDailyNewOrdersRow) map[string]int64 {
 		m[formatDayKey(row.Day)] = row.Count
 	}
 	return m
-}
-
-func dailyRevenueMap(rows []db.AdminDailyPaidRevenueRow) map[string]int64 {
-	m := make(map[string]int64, len(rows))
-	for _, row := range rows {
-		m[formatDayKey(row.Day)] = row.Amount
-	}
-	return m
-}
-
-func buildDailyAmountSeries(days int, rows map[string]int64, now time.Time) []dailyAmountJSON {
-	out := make([]dailyAmountJSON, 0, days)
-	today := startOfDay(now)
-	for i := days - 1; i >= 0; i-- {
-		day := today.AddDate(0, 0, -i)
-		key := formatDayKey(day)
-		out = append(out, dailyAmountJSON{
-			Date:        key,
-			AmountMinor: rows[key],
-		})
-	}
-	return out
 }
 
 // GetDashboard returns aggregate counts and recent daily trends for the admin home page.
@@ -186,10 +158,6 @@ func (h *DashboardHandler) GetDashboard(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "获取热销商品失败")
 	}
-	revenueDailyRows, err := h.Q.AdminDailyPaidRevenue(ctx)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "获取每日收入失败")
-	}
 	topProducts := make([]topProductSalesJSON, 0, len(topProductRows))
 	for _, row := range topProductRows {
 		topProducts = append(topProducts, topProductSalesJSON{
@@ -209,10 +177,9 @@ func (h *DashboardHandler) GetDashboard(c echo.Context) error {
 			RevenueMinor:       revenueMinor,
 		},
 		Trends: dashboardTrendsJSON{
-			Days:    dashboardTrendDays,
-			Users:   buildDailySeries(dashboardTrendDays, dailyUsersMap(userDailyRows), now),
-			Orders:  buildDailySeries(dashboardTrendDays, dailyOrdersMap(orderDailyRows), now),
-			Revenue: buildDailyAmountSeries(dashboardTrendDays, dailyRevenueMap(revenueDailyRows), now),
+			Days:   dashboardTrendDays,
+			Users:  buildDailySeries(dashboardTrendDays, dailyUsersMap(userDailyRows), now),
+			Orders: buildDailySeries(dashboardTrendDays, dailyOrdersMap(orderDailyRows), now),
 			Summary: trendSummaryJSON{
 				YesterdayUsers:  usersYesterday,
 				YesterdayOrders: ordersYesterday,

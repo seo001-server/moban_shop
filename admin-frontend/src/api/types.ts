@@ -91,11 +91,6 @@ export type DailyCount = {
   count: number
 }
 
-export type DailyAmount = {
-  date: string
-  amount_minor: number
-}
-
 export type DashboardTrendSummary = {
   yesterday_users: number
   yesterday_orders: number
@@ -113,7 +108,6 @@ export type DashboardTrends = {
   days: number
   users: DailyCount[]
   orders: DailyCount[]
-  revenue: DailyAmount[]
   summary: DashboardTrendSummary
   top_products: TopProductSales[]
 }

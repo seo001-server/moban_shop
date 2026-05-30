@@ -75,9 +75,9 @@ WHERE (? = '' OR o.status = ?)
 func (q *Queries) AdminCountOrdersFiltered(ctx context.Context, arg AdminOrdersFilterArgs) (int64, error) {
 	row := q.db.QueryRowContext(ctx, adminCountOrdersFiltered,
 		arg.StatusFlag, arg.Status,
-		arg.QueryFlag, arg.Query, arg.Query,
+		arg.QueryFlag, arg.Query,
 		arg.FromFlag, arg.From,
-		arg.ToFlag, arg.To, arg.To,
+		arg.ToFlag, arg.To,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -116,9 +116,9 @@ LIMIT ? OFFSET ?
 func (q *Queries) AdminListOrdersFilteredPaged(ctx context.Context, arg AdminOrdersFilterArgs, limit, offset int32) ([]AdminListOrdersRow, error) {
 	rows, err := q.db.QueryContext(ctx, adminListOrdersFilteredPaged,
 		arg.StatusFlag, arg.Status,
-		arg.QueryFlag, arg.Query, arg.Query,
+		arg.QueryFlag, arg.Query,
 		arg.FromFlag, arg.From,
-		arg.ToFlag, arg.To, arg.To,
+		arg.ToFlag, arg.To,
 		limit, offset,
 	)
 	if err != nil {
@@ -169,9 +169,9 @@ LIMIT 5000
 func (q *Queries) AdminListOrdersForExport(ctx context.Context, arg AdminOrdersFilterArgs) ([]AdminListOrdersExportRow, error) {
 	rows, err := q.db.QueryContext(ctx, adminListOrdersForExport,
 		arg.StatusFlag, arg.Status,
-		arg.QueryFlag, arg.Query, arg.Query,
+		arg.QueryFlag, arg.Query,
 		arg.FromFlag, arg.From,
-		arg.ToFlag, arg.To, arg.To,
+		arg.ToFlag, arg.To,
 	)
 	if err != nil {
 		return nil, err

@@ -195,13 +195,13 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
         </label>
         <div className="form-grid form-grid--2">
           <label>
-            封面图 URL（可选）
+            封面图地址（可选）
             <div className="row gap" style={{ alignItems: 'stretch' }}>
               <input
-                type="url"
+                type="text"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://… 或上传图片"
+                placeholder="https://… 或 /uploads/…"
                 style={{ flex: 1 }}
               />
               <input

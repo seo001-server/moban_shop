@@ -4,7 +4,6 @@ import { ApiError } from '../api/http'
 import { adminApiFetch } from '../api/adminHttp'
 import type { DashboardData } from '../api/types'
 import DashboardDailyChart from '../components/DashboardDailyChart'
-import DashboardRevenueChart from '../components/DashboardRevenueChart'
 import DashboardTopProducts from '../components/DashboardTopProducts'
 import { formatMoney } from '../utils/format'
 
@@ -74,7 +73,6 @@ export default function DashboardPage() {
   }
 
   const { stats, trends } = data
-  const revenue = trends.revenue ?? []
 
   return (
     <div className="page">
@@ -154,18 +152,6 @@ export default function DashboardPage() {
               days={trends.days}
               color="#059669"
               colorMuted="#6ee7b7"
-            />
-          </div>
-        </div>
-
-        <div className="card dashboard-chart-card dashboard-chart-card--bar">
-          <div className="card__body">
-            <DashboardRevenueChart
-              title="已支付收入"
-              series={revenue}
-              days={trends.days}
-              color="#d97706"
-              colorMuted="#fcd34d"
             />
           </div>
         </div>

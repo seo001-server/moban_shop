@@ -48,6 +48,11 @@ export default function ProductsPage() {
   const { showToast } = useToast()
   const filters = useMemo(() => readFilters(location.search), [location.search])
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null)
+  const [searchDraft, setSearchDraft] = useState(filters.q)
+
+  useEffect(() => {
+    setSearchDraft(filters.q)
+  }, [filters.q])
 
   const filterKey = `${filters.category}|${filters.recommended}|${filters.q}`
 
@@ -83,6 +88,10 @@ export default function ProductsPage() {
     if (next.q.trim()) q.set('q', next.q.trim())
     const search = q.toString()
     nav({ pathname: '/templates', search: search ? `?${search}` : '' }, { replace: true })
+  }
+
+  function applySearch() {
+    patchFilters({ q: searchDraft })
   }
 
   function closeForm() {
@@ -186,15 +195,25 @@ export default function ProductsPage() {
                 ))}
               </div>
             </div>
-            <label className="filter-inline-field">
+            <form
+              className="filter-search-group"
+              role="search"
+              onSubmit={(e) => {
+                e.preventDefault()
+                applySearch()
+              }}
+            >
               <span className="filter-bar__label">搜索</span>
               <input
                 type="search"
-                value={filters.q}
+                value={searchDraft}
                 placeholder="标题或 slug"
-                onChange={(e) => patchFilters({ q: e.target.value })}
+                onChange={(e) => setSearchDraft(e.target.value)}
               />
-            </label>
+              <button type="submit" className="btn small">
+                搜索
+              </button>
+            </form>
             <button type="button" className="btn primary" onClick={() => setFormTarget({ mode: 'new' })}>
               新建模板
             </button>

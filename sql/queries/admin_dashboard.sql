@@ -53,11 +53,3 @@ WHERE o.status = 'paid'
 GROUP BY p.id, p.title
 ORDER BY sales_qty DESC, p.id ASC
 LIMIT 5;
-
--- name: AdminDailyPaidRevenue :many
-SELECT DATE(updated_at) AS day, COALESCE(SUM(total_amount_minor), 0) AS amount
-FROM orders
-WHERE status = 'paid'
-  AND updated_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-GROUP BY DATE(updated_at)
-ORDER BY day ASC;

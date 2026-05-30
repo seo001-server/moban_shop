@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { adminApiFetch } from '../api/adminHttp'
 import type { AdminUser, PaginatedList } from '../api/types'
@@ -20,6 +20,11 @@ export default function UsersPage() {
   const nav = useNavigate()
   const query = useMemo(() => readQuery(location.search), [location.search])
   const [ordersTarget, setOrdersTarget] = useState<OrdersTarget>(null)
+  const [searchDraft, setSearchDraft] = useState(query)
+
+  useEffect(() => {
+    setSearchDraft(query)
+  }, [query])
 
   const fetchPage = useCallback(
     async (page: number, pageSize: number) => {
@@ -40,6 +45,10 @@ export default function UsersPage() {
     if (next.trim()) q.set('q', next.trim())
     const search = q.toString()
     nav({ pathname: '/users', search: search ? `?${search}` : '' }, { replace: true })
+  }
+
+  function applySearch() {
+    patchQuery(searchDraft)
   }
 
   const dialogOpen = ordersTarget !== null
@@ -70,15 +79,25 @@ export default function UsersPage() {
             <p className="page-header__desc">商城前台注册用户，共 {total} 人</p>
           </div>
           <div className="page-header__toolbar">
-            <label className="filter-inline-field">
+            <form
+              className="filter-search-group"
+              role="search"
+              onSubmit={(e) => {
+                e.preventDefault()
+                applySearch()
+              }}
+            >
               <span className="filter-bar__label">邮箱搜索</span>
               <input
                 type="search"
-                value={query}
+                value={searchDraft}
                 placeholder="输入邮箱关键词"
-                onChange={(e) => patchQuery(e.target.value)}
+                onChange={(e) => setSearchDraft(e.target.value)}
               />
-            </label>
+              <button type="submit" className="btn small">
+                搜索
+              </button>
+            </form>
           </div>
         </div>
       </div>
