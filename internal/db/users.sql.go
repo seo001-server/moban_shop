@@ -11,21 +11,22 @@ import (
 )
 
 const createUser = `-- name: CreateUser :execresult
-INSERT INTO users (email, password_hash)
-VALUES (?, ?)
+INSERT INTO users (user_no, email, password_hash)
+VALUES (?, ?, ?)
 `
 
 type CreateUserParams struct {
+	UserNo       string `json:"user_no"`
 	Email        string `json:"email"`
 	PasswordHash string `json:"password_hash"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createUser, arg.Email, arg.PasswordHash)
+	return q.db.ExecContext(ctx, createUser, arg.UserNo, arg.Email, arg.PasswordHash)
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, created_at
+SELECT id, user_no, email, password_hash, created_at
 FROM users
 WHERE email = ?
 LIMIT 1
@@ -36,6 +37,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	var i User
 	err := row.Scan(
 		&i.ID,
+		&i.UserNo,
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,
@@ -44,7 +46,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, created_at
+SELECT id, user_no, email, password_hash, created_at
 FROM users
 WHERE id = ?
 LIMIT 1
@@ -55,6 +57,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uint64) (User, error) {
 	var i User
 	err := row.Scan(
 		&i.ID,
+		&i.UserNo,
 		&i.Email,
 		&i.PasswordHash,
 		&i.CreatedAt,

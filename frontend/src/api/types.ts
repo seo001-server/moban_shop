@@ -33,6 +33,7 @@ export type TokenResponse = {
 export type MeResponse = {
   user: {
     id: number
+    user_no: string
     email: string
     created_at: string
   }
@@ -40,7 +41,10 @@ export type MeResponse = {
 
 export type OrderItem = {
   product_id: number
+  product_slug: string
   product_title: string
+  preview_url?: string | null
+  image_url?: string | null
   quantity: number
   unit_price_minor: number
   line_total_minor: number
@@ -48,6 +52,7 @@ export type OrderItem = {
 
 export type Order = {
   id: number
+  order_no: string
   status: string
   total_amount_minor: number
   currency: string

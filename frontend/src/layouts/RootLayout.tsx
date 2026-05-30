@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useCart } from '../cart/CartContext'
-import { BUSINESS_SECTIONS } from '../lib/businessSections'
+import { useBusinessSections } from '../hooks/useBusinessSections'
 
 function adminHref(): string | null {
   const raw = import.meta.env.VITE_ADMIN_URL
@@ -13,6 +13,7 @@ function adminHref(): string | null {
 export function RootLayout() {
   const { me, logout } = useAuth()
   const { totalQty } = useCart()
+  const { sections: businessSections } = useBusinessSections()
   const adminBase = adminHref()
   const [backTopVisible, setBackTopVisible] = useState(false)
 
@@ -31,7 +32,7 @@ export function RootLayout() {
 
   return (
     <>
-      <header>
+      <header className="site-header">
         <div className="container">
           <nav className="navbar">
             <div className="logo">
@@ -43,7 +44,7 @@ export function RootLayout() {
               <NavLink to="/" end className={navCls}>
                 首页
               </NavLink>
-              {BUSINESS_SECTIONS.map((s) => (
+              {businessSections.map((s) => (
                 <NavLink key={s.slug} to={`/${s.slug}`} className={navCls}>
                   {s.label}
                 </NavLink>
@@ -57,8 +58,12 @@ export function RootLayout() {
             </div>
             <div className="navbar-actions">
               <Link className="nav-btn-plain nav-cart-link" to="/cart">
-                <i className="fas fa-shopping-cart" aria-hidden /> 购物车
-                {totalQty > 0 ? <span className="cart-chip">{totalQty > 99 ? '99+' : totalQty}</span> : null}
+                <span className="cart-icon-wrap" aria-hidden>
+                  <i className="fas fa-shopping-cart" />
+                  {totalQty > 0 ? (
+                    <span className="cart-chip">{totalQty > 99 ? '99+' : totalQty}</span>
+                  ) : null}
+                </span>
               </Link>
               {me ? (
                 <>
@@ -107,7 +112,7 @@ export function RootLayout() {
             <div className="footer-col">
               <h3>产品服务</h3>
               <ul className="footer-links">
-                {BUSINESS_SECTIONS.map((s) => (
+                {businessSections.map((s) => (
                   <li key={s.slug}>
                     <Link to={`/${s.slug}`}>
                       <i className="fas fa-angle-right" /> {s.label}
@@ -171,7 +176,12 @@ export function RootLayout() {
       </button>
 
       <Link to="/cart" className="cart-float-btn" title="打开购物车">
-        <i className="fas fa-shopping-cart" />
+        <span className="cart-icon-wrap" aria-hidden>
+          <i className="fas fa-shopping-cart" />
+          {totalQty > 0 ? (
+            <span className="cart-chip">{totalQty > 99 ? '99+' : totalQty}</span>
+          ) : null}
+        </span>
         <span className="cart-float-text">购物车</span>
       </Link>
     </>

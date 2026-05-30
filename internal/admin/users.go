@@ -24,6 +24,7 @@ func NewUsersHandler(q *db.Queries) *UsersHandler {
 
 type userJSON struct {
 	ID        uint64 `json:"id"`
+	UserNo    string `json:"user_no"`
 	Email     string `json:"email"`
 	CreatedAt string `json:"created_at"`
 }
@@ -32,12 +33,12 @@ type userJSON struct {
 func (h *UsersHandler) ListUsers(c echo.Context) error {
 	ctx := c.Request().Context()
 	p := ParsePagination(c)
-	query := parseUsersQueryFilter(c)
-	total, err := h.Q.AdminCountUsersFiltered(ctx, query)
+	query, userNoQuery := parseUsersQueryFilter(c)
+	total, err := h.Q.AdminCountUsersFiltered(ctx, query, userNoQuery)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "统计用户数量失败")
 	}
-	rows, err := h.Q.AdminListUsersFilteredPaged(ctx, query, int32(p.PageSize), int32(p.Offset))
+	rows, err := h.Q.AdminListUsersFilteredPaged(ctx, query, userNoQuery, int32(p.PageSize), int32(p.Offset))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "获取用户列表失败")
 	}
@@ -96,6 +97,7 @@ func (h *UsersHandler) ListUserOrders(c echo.Context) error {
 func userToJSON(u db.AdminListUsersRow) userJSON {
 	return userJSON{
 		ID:        u.ID,
+		UserNo:    u.UserNo,
 		Email:     u.Email,
 		CreatedAt: u.CreatedAt.UTC().Format(time.RFC3339Nano),
 	}

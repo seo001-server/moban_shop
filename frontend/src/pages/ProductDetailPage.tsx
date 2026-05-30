@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/http'
 import type { Product } from '../api/types'
 import { formatMinor } from '../util/money'
 import { normalizeProduct } from '../lib/normalizeProduct'
 import { useCart } from '../cart/CartContext'
+import { useAuth } from '../auth/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 const CATEGORY_LABEL: Record<string, string> = {
   film: '影视娱乐',
@@ -46,7 +48,11 @@ const DETAIL_FEATURES = [
 
 export default function ProductDetailPage() {
   const { id: idParam } = useParams()
-  const { addLine } = useCart()
+  const nav = useNavigate()
+  const loc = useLocation()
+  const { token } = useAuth()
+  const { addLine, setDirectCheckoutLines } = useCart()
+  const { showToast } = useToast()
   const [p, setP] = useState<Product | null>(null)
   const [catalog, setCatalog] = useState<Product[]>([])
   const [err, setErr] = useState<string | null>(null)
@@ -92,17 +98,42 @@ export default function ProductDetailPage() {
     return catalog.filter((x) => x.slug !== p.slug && x.id !== p.id).slice(0, 3)
   }, [catalog, p])
 
+  function lineFromProduct(product: Product) {
+    return {
+      id: product.id,
+      slug: product.slug,
+      title: product.title,
+      price_minor: product.price_minor,
+      currency: product.currency,
+      image_url: product.image_url ?? null,
+    }
+  }
+
+  function loginFromHere() {
+    nav(`/login?from=${encodeURIComponent(loc.pathname)}`)
+  }
+
   function handleAddCart() {
     if (!p) return
-    addLine({
-      id: p.id,
-      slug: p.slug,
-      title: p.title,
-      price_minor: p.price_minor,
-      currency: p.currency,
-      image_url: p.image_url ?? null,
-      qty: 1,
+    if (!token) {
+      showToast('请先登录后再加入购物车', 'info')
+      loginFromHere()
+      return
+    }
+    void addLine({ ...lineFromProduct(p), qty: 1 }).then(() => {
+      showToast('已加入购物车')
     })
+  }
+
+  function handleBuyNow() {
+    if (!p) return
+    setDirectCheckoutLines([{ ...lineFromProduct(p), qty: 1 }])
+    if (!token) {
+      showToast('请先登录后再购买', 'info')
+      nav('/login?from=/checkout')
+      return
+    }
+    nav('/checkout')
   }
 
   if (!idParam || !validId) {
@@ -263,20 +294,26 @@ export default function ProductDetailPage() {
               </div>
 
               <div className="action-buttons">
-                <button
-                  type="button"
-                  className="detail-btn-primary"
-                  onClick={() => alert('购买流程暂未对接支付。\n可先「加入购物车」保留选购清单。')}
-                >
+                <button type="button" className="detail-btn-primary" onClick={handleBuyNow}>
                   <i className="fas fa-shopping-cart" /> 立即购买
                 </button>
                 <button type="button" className="detail-btn-primary" onClick={handleAddCart}>
                   <i className="fas fa-cart-plus" /> 加入购物车
                 </button>
-                <span className="detail-btn-secondary detail-btn-muted">
-                  <i className={`fas ${p.preview_url ? 'fa-eye' : 'fa-eye-slash'}`} />{' '}
-                  {p.preview_url ? '查看演示' : '暂无演示站点'}
-                </span>
+                {p.preview_url ? (
+                  <a
+                    href={p.preview_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="detail-btn-secondary"
+                  >
+                    <i className="fas fa-eye" /> 查看演示
+                  </a>
+                ) : (
+                  <span className="detail-btn-secondary detail-btn-muted">
+                    <i className="fas fa-eye-slash" /> 暂无演示站点
+                  </span>
+                )}
               </div>
             </div>
           </div>

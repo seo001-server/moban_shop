@@ -11,23 +11,24 @@ import (
 )
 
 const adminCreateProduct = `-- name: AdminCreateProduct :execresult
-INSERT INTO products (slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO products (slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type AdminCreateProductParams struct {
-	Slug         string         `json:"slug"`
-	Category     string         `json:"category"`
-	Title        string         `json:"title"`
-	Description  sql.NullString `json:"description"`
-	PriceMinor   int64          `json:"price_minor"`
-	Currency     string         `json:"currency"`
-	ImageUrl     sql.NullString `json:"image_url"`
-	PreviewUrl   sql.NullString `json:"preview_url"`
-	SortOrder    int32          `json:"sort_order"`
-	Recommended  bool           `json:"recommended"`
-	Downloads    int64          `json:"downloads"`
-	Score        float64        `json:"score"`
+	Slug        string         `json:"slug"`
+	Category    string         `json:"category"`
+	Title       string         `json:"title"`
+	Description sql.NullString `json:"description"`
+	PriceMinor  int64          `json:"price_minor"`
+	Currency    string         `json:"currency"`
+	ImageUrl    sql.NullString `json:"image_url"`
+	PreviewUrl  sql.NullString `json:"preview_url"`
+	SortOrder   int32          `json:"sort_order"`
+	Recommended bool           `json:"recommended"`
+	Visible     bool           `json:"visible"`
+	Downloads   int64          `json:"downloads"`
+	Score       float64        `json:"score"`
 }
 
 func (q *Queries) AdminCreateProduct(ctx context.Context, arg AdminCreateProductParams) (sql.Result, error) {
@@ -42,6 +43,7 @@ func (q *Queries) AdminCreateProduct(ctx context.Context, arg AdminCreateProduct
 		arg.PreviewUrl,
 		arg.SortOrder,
 		arg.Recommended,
+		arg.Visible,
 		arg.Downloads,
 		arg.Score,
 	)
@@ -58,7 +60,7 @@ func (q *Queries) AdminDeleteProduct(ctx context.Context, id uint64) error {
 }
 
 const adminGetProductByID = `-- name: AdminGetProductByID :one
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE id = ?
 LIMIT 1
@@ -67,27 +69,12 @@ LIMIT 1
 func (q *Queries) AdminGetProductByID(ctx context.Context, id uint64) (Product, error) {
 	row := q.db.QueryRowContext(ctx, adminGetProductByID, id)
 	var i Product
-	err := row.Scan(
-		&i.ID,
-		&i.Slug,
-		&i.Category,
-		&i.Title,
-		&i.Description,
-		&i.PriceMinor,
-		&i.Currency,
-		&i.ImageUrl,
-		&i.PreviewUrl,
-		&i.SortOrder,
-		&i.Recommended,
-		&i.Downloads,
-		&i.Score,
-		&i.CreatedAt,
-	)
+	err := row.Scan(scanProductFields(&i)...)
 	return i, err
 }
 
 const adminGetProductBySlug = `-- name: AdminGetProductBySlug :one
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE slug = ?
 LIMIT 1
@@ -96,27 +83,12 @@ LIMIT 1
 func (q *Queries) AdminGetProductBySlug(ctx context.Context, slug string) (Product, error) {
 	row := q.db.QueryRowContext(ctx, adminGetProductBySlug, slug)
 	var i Product
-	err := row.Scan(
-		&i.ID,
-		&i.Slug,
-		&i.Category,
-		&i.Title,
-		&i.Description,
-		&i.PriceMinor,
-		&i.Currency,
-		&i.ImageUrl,
-		&i.PreviewUrl,
-		&i.SortOrder,
-		&i.Recommended,
-		&i.Downloads,
-		&i.Score,
-		&i.CreatedAt,
-	)
+	err := row.Scan(scanProductFields(&i)...)
 	return i, err
 }
 
 const adminListProducts = `-- name: AdminListProducts :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 ORDER BY sort_order ASC, id ASC
 `
@@ -130,22 +102,7 @@ func (q *Queries) AdminListProducts(ctx context.Context) ([]Product, error) {
 	items := []Product{}
 	for rows.Next() {
 		var i Product
-		if err := rows.Scan(
-			&i.ID,
-			&i.Slug,
-			&i.Category,
-			&i.Title,
-			&i.Description,
-			&i.PriceMinor,
-			&i.Currency,
-			&i.ImageUrl,
-			&i.PreviewUrl,
-			&i.SortOrder,
-			&i.Recommended,
-			&i.Downloads,
-			&i.Score,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(scanProductFields(&i)...); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -161,7 +118,7 @@ func (q *Queries) AdminListProducts(ctx context.Context) ([]Product, error) {
 
 const adminUpdateProduct = `-- name: AdminUpdateProduct :exec
 UPDATE products
-SET slug = ?, category = ?, title = ?, description = ?, price_minor = ?, currency = ?, image_url = ?, preview_url = ?, sort_order = ?, recommended = ?, downloads = ?, score = ?
+SET slug = ?, category = ?, title = ?, description = ?, price_minor = ?, currency = ?, image_url = ?, preview_url = ?, sort_order = ?, recommended = ?, visible = ?, downloads = ?, score = ?
 WHERE id = ?
 `
 
@@ -176,6 +133,7 @@ type AdminUpdateProductParams struct {
 	PreviewUrl  sql.NullString `json:"preview_url"`
 	SortOrder   int32          `json:"sort_order"`
 	Recommended bool           `json:"recommended"`
+	Visible     bool           `json:"visible"`
 	Downloads   int64          `json:"downloads"`
 	Score       float64        `json:"score"`
 	ID          uint64         `json:"id"`
@@ -193,9 +151,39 @@ func (q *Queries) AdminUpdateProduct(ctx context.Context, arg AdminUpdateProduct
 		arg.PreviewUrl,
 		arg.SortOrder,
 		arg.Recommended,
+		arg.Visible,
 		arg.Downloads,
 		arg.Score,
 		arg.ID,
 	)
+	return err
+}
+
+const adminCountOrderItemsByProduct = `-- name: AdminCountOrderItemsByProduct :one
+SELECT COUNT(*) AS count FROM order_items WHERE product_id = ?
+`
+
+func (q *Queries) AdminCountOrderItemsByProduct(ctx context.Context, productID uint64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, adminCountOrderItemsByProduct, productID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const adminSetProductRecommended = `-- name: AdminSetProductRecommended :exec
+UPDATE products SET recommended = ? WHERE id = ?
+`
+
+func (q *Queries) AdminSetProductRecommended(ctx context.Context, recommended bool, id uint64) error {
+	_, err := q.db.ExecContext(ctx, adminSetProductRecommended, recommended, id)
+	return err
+}
+
+const adminSetProductVisible = `-- name: AdminSetProductVisible :exec
+UPDATE products SET visible = ? WHERE id = ?
+`
+
+func (q *Queries) AdminSetProductVisible(ctx context.Context, visible bool, id uint64) error {
+	_, err := q.db.ExecContext(ctx, adminSetProductVisible, visible, id)
 	return err
 }

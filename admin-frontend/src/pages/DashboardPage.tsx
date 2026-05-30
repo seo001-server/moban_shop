@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/http'
 import { adminApiFetch } from '../api/adminHttp'
 import type { DashboardData } from '../api/types'
+import type { DashboardDays } from '../components/DashboardDaysRange'
 import DashboardDailyChart from '../components/DashboardDailyChart'
 import DashboardTopProducts from '../components/DashboardTopProducts'
 import { formatMoney } from '../utils/format'
@@ -35,15 +36,28 @@ function StatCard({
 
 export default function DashboardPage() {
   const nav = useNavigate()
+  const [userDays, setUserDays] = useState<DashboardDays>(7)
+  const [orderDays, setOrderDays] = useState<DashboardDays>(7)
+  const [topDays, setTopDays] = useState<DashboardDays>(7)
   const [data, setData] = useState<DashboardData | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [trendsLoading, setTrendsLoading] = useState(false)
 
   useEffect(() => {
     let alive = true
+    setTrendsLoading(true)
     ;(async () => {
       try {
-        const res = await adminApiFetch<DashboardData>('/api/admin/dashboard')
-        if (alive) setData(res)
+        const q = new URLSearchParams({
+          user_days: String(userDays),
+          order_days: String(orderDays),
+          top_days: String(topDays),
+        })
+        const res = await adminApiFetch<DashboardData>(`/api/admin/dashboard?${q}`)
+        if (alive) {
+          setData(res)
+          setErr(null)
+        }
       } catch (e) {
         if (!alive) return
         if (e instanceof ApiError) {
@@ -51,14 +65,16 @@ export default function DashboardPage() {
         } else {
           setErr('加载失败')
         }
+      } finally {
+        if (alive) setTrendsLoading(false)
       }
     })()
     return () => {
       alive = false
     }
-  }, [])
+  }, [userDays, orderDays, topDays])
 
-  if (err) {
+  if (err && !data) {
     return (
       <div className="page">
         <div className="alert alert--error" role="alert">
@@ -101,9 +117,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="card dashboard-summary-card">
-        <div className="card__header">
-          <span>近 {trends.days} 日数据概览</span>
-        </div>
         <div className="card__body">
           <div className="dashboard-summary-grid">
             <div className="dashboard-summary-metric">
@@ -123,21 +136,17 @@ export default function DashboardPage() {
               <span className="dashboard-summary-metric__value">{trends.summary.today_orders}</span>
             </div>
           </div>
-          <div className="dashboard-summary-links">
-            <button type="button" className="linkish" onClick={() => nav('/orders?status=pending')}>
-              查看待处理订单 ({stats.orders_pending_count})
-            </button>
-          </div>
         </div>
       </div>
 
-      <div className="dashboard-charts-grid">
+      <div className={`dashboard-charts-grid${trendsLoading ? ' dashboard-charts-grid--loading' : ''}`}>
         <div className="card dashboard-chart-card dashboard-chart-card--bar">
           <div className="card__body">
             <DashboardDailyChart
               title="新增用户"
               series={trends.users}
-              days={trends.days}
+              days={userDays}
+              onDaysChange={setUserDays}
               color="#2563eb"
               colorMuted="#93c5fd"
             />
@@ -149,7 +158,8 @@ export default function DashboardPage() {
             <DashboardDailyChart
               title="新增订单"
               series={trends.orders}
-              days={trends.days}
+              days={orderDays}
+              onDaysChange={setOrderDays}
               color="#059669"
               colorMuted="#6ee7b7"
             />
@@ -158,7 +168,11 @@ export default function DashboardPage() {
 
         <div className="card dashboard-chart-card">
           <div className="card__body">
-            <DashboardTopProducts items={trends.top_products ?? []} />
+            <DashboardTopProducts
+              items={trends.top_products ?? []}
+              days={topDays}
+              onDaysChange={setTopDays}
+            />
           </div>
         </div>
       </div>

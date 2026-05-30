@@ -1,32 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 
 import { ApiError, apiFetch } from '../api/http'
 
 import type { Order, PaginatedOrders } from '../api/types'
 
+import { ProductDeliveryActions } from '../components/ProductDeliveryActions'
+
 import { useAuth } from '../auth/AuthContext'
+
+import { useToast } from '../context/ToastContext'
+
+import { ORDER_STATUS_LABELS, orderStatusClass } from '../lib/orderLabels'
+
+import { fetchPurchasedProducts, type PurchasedProduct } from '../lib/purchasedProducts'
 
 import { formatMinor } from '../util/money'
 
-
-
-const STATUS_LABELS: Record<string, string> = {
-
-  pending: '待支付',
-
-  paid: '已支付',
-
-  cancelled: '已取消',
-
-  refunded: '已退款',
-
-}
+import '../styles/order-detail.css'
 
 
 
-type AccountTab = 'overview' | 'orders'
+type AccountTab = 'overview' | 'orders' | 'library'
 
 
 
@@ -52,18 +48,9 @@ function memberDays(createdAt: string): number {
 
 
 
-function statusClass(status: string): string {
-
-  if (status === 'pending') return 'account-status-pending'
-
-  if (status === 'paid') return 'account-status-paid'
-
-  if (status === 'cancelled') return 'account-status-cancelled'
-
-  if (status === 'refunded') return 'account-status-refunded'
-
-  return 'account-status-cancelled'
-
+function parseAccountTab(raw: string | null): AccountTab {
+  if (raw === 'orders' || raw === 'library') return raw
+  return 'overview'
 }
 
 
@@ -72,7 +59,11 @@ export default function AccountPage() {
 
   const { me, token, loading, refreshMe, logout } = useAuth()
 
-  const [tab, setTab] = useState<AccountTab>('overview')
+  const { showToast } = useToast()
+
+  const [searchParams] = useSearchParams()
+
+  const [tab, setTab] = useState<AccountTab>(() => parseAccountTab(searchParams.get('tab')))
 
   const [orders, setOrders] = useState<Order[] | null>(null)
 
@@ -81,6 +72,12 @@ export default function AccountPage() {
   const [ordersErr, setOrdersErr] = useState<string | null>(null)
 
   const [payingId, setPayingId] = useState<number | null>(null)
+
+  const [library, setLibrary] = useState<PurchasedProduct[] | null>(null)
+
+  const [libraryLoading, setLibraryLoading] = useState(false)
+
+  const [libraryErr, setLibraryErr] = useState<string | null>(null)
 
 
 
@@ -120,6 +117,62 @@ export default function AccountPage() {
 
 
 
+  useEffect(() => {
+
+    const next = parseAccountTab(searchParams.get('tab'))
+
+    setTab(next)
+
+  }, [searchParams])
+
+
+
+  useEffect(() => {
+
+    if (tab !== 'library' || !orders) return
+
+    let alive = true
+
+    ;(async () => {
+
+      setLibraryLoading(true)
+
+      try {
+
+        const items = await fetchPurchasedProducts(orders)
+
+        if (!alive) return
+
+        setLibrary(items)
+
+        setLibraryErr(null)
+
+      } catch {
+
+        if (!alive) return
+
+        setLibraryErr('加载已购资源失败')
+
+        setLibrary([])
+
+      } finally {
+
+        if (alive) setLibraryLoading(false)
+
+      }
+
+    })()
+
+    return () => {
+
+      alive = false
+
+    }
+
+  }, [tab, orders])
+
+
+
   const paidCount = useMemo(
 
     () => (orders ?? []).filter((o) => o.status === 'paid').length,
@@ -140,11 +193,13 @@ export default function AccountPage() {
 
       await loadOrders()
 
+      showToast('支付成功')
+
     } catch (e) {
 
       const msg = e instanceof ApiError ? e.message : '支付失败，请稍后重试'
 
-      alert(msg)
+      showToast(msg, 'error')
 
     } finally {
 
@@ -276,8 +331,6 @@ export default function AccountPage() {
 
               <div className="account-profile-email">{me.email}</div>
 
-              <div className="account-profile-id">用户 ID · {me.id}</div>
-
             </div>
 
           </div>
@@ -323,6 +376,28 @@ export default function AccountPage() {
                 我的订单
 
                 {orderTotal > 0 ? <span className="account-nav-badge">{orderTotal}</span> : null}
+
+              </button>
+
+            </li>
+
+
+
+            <li className="account-nav-item">
+
+              <button
+
+                type="button"
+
+                className={`account-nav-btn${tab === 'library' ? ' active' : ''}`}
+
+                onClick={() => setTab('library')}
+
+              >
+
+                <i className="fas fa-box-open" aria-hidden />
+
+                已购资源
 
               </button>
 
@@ -464,9 +539,9 @@ export default function AccountPage() {
 
                     <div className="account-info-body">
 
-                      <div className="account-info-label">用户 ID</div>
+                      <div className="account-info-label">用户 UID</div>
 
-                      <div className="account-info-value">#{me.id}</div>
+                      <div className="account-info-value">{me.user_no}</div>
 
                     </div>
 
@@ -548,8 +623,6 @@ export default function AccountPage() {
 
                     >
 
-                      查看全部 <i className="fas fa-arrow-right" aria-hidden />
-
                     </button>
 
                   </div>
@@ -579,6 +652,110 @@ export default function AccountPage() {
               ) : null}
 
             </>
+
+          ) : tab === 'library' ? (
+
+            <section className="account-panel">
+
+              <div className="account-panel-head">
+
+                <div>
+
+                  <h1 className="account-panel-title">已购资源</h1>
+
+                  <p className="account-panel-sub">已支付订单中的模板，可直接查看演示与文档</p>
+
+                </div>
+
+              </div>
+
+
+
+              {libraryErr ? (
+
+                <p className="error" role="alert">
+
+                  {libraryErr}
+
+                </p>
+
+              ) : libraryLoading || library === null ? (
+
+                <div className="account-loading">
+
+                  <i className="fas fa-spinner fa-spin" aria-hidden />
+
+                  <span>加载已购资源…</span>
+
+                </div>
+
+              ) : library.length === 0 ? (
+
+                <div className="account-empty">
+
+                  <div className="account-empty-icon">
+
+                    <i className="fas fa-box-open" aria-hidden />
+
+                  </div>
+
+                  <h3>暂无已购模板</h3>
+
+                  <p>完成支付后，已购模板会出现在这里</p>
+
+                  <Link className="btn btn-register" to="/products">
+
+                    浏览模板
+
+                  </Link>
+
+                </div>
+
+              ) : (
+
+                <div className="order-library-list">
+
+                  {library.map((item) => (
+
+                    <article key={item.product_id} className="order-library-card">
+
+                      <div className="order-library-thumb">
+
+                        {item.image_url ? (
+
+                          <img src={item.image_url} alt="" />
+
+                        ) : (
+
+                          <i className="fas fa-layer-group" aria-hidden />
+
+                        )}
+
+                      </div>
+
+                      <div className="order-library-body">
+
+                        <div className="order-library-title">{item.product_title}</div>
+
+                        <p className="muted small order-library-meta">
+
+                          购于 {new Date(item.purchased_at).toLocaleDateString()} · 订单 {item.order_no}
+
+                        </p>
+
+                        <ProductDeliveryActions item={item} paid compact />
+
+                      </div>
+
+                    </article>
+
+                  ))}
+
+                </div>
+
+              )}
+
+            </section>
 
           ) : (
 
@@ -718,7 +895,7 @@ function OrderCard({
 
         <div className="account-order-id">
 
-          <span>订单号</span>#{order.id}
+          <span>订单号</span>{order.order_no}
 
         </div>
 
@@ -740,9 +917,9 @@ function OrderCard({
 
         <div className="account-order-meta">
 
-          <span className={`account-status ${statusClass(order.status)}`}>
+          <span className={`account-status ${orderStatusClass(order.status)}`}>
 
-            {STATUS_LABELS[order.status] ?? order.status}
+            {ORDER_STATUS_LABELS[order.status] ?? order.status}
 
           </span>
 
@@ -774,7 +951,19 @@ function OrderCard({
 
             </div>
 
-          ) : null}
+          ) : (
+
+            <div className="account-order-actions">
+
+              <Link className="btn btn-login account-btn-pay" to={`/account/orders/${order.id}`}>
+
+                查看详情
+
+              </Link>
+
+            </div>
+
+          )}
 
         </div>
 

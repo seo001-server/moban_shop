@@ -11,13 +11,14 @@ import (
 )
 
 const adminListUsers = `-- name: AdminListUsers :many
-SELECT id, email, created_at
+SELECT id, user_no, email, created_at
 FROM users
 ORDER BY id DESC
 `
 
 type AdminListUsersRow struct {
 	ID        uint64    `json:"id"`
+	UserNo    string    `json:"user_no"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -31,7 +32,7 @@ func (q *Queries) AdminListUsers(ctx context.Context) ([]AdminListUsersRow, erro
 	items := []AdminListUsersRow{}
 	for rows.Next() {
 		var i AdminListUsersRow
-		if err := rows.Scan(&i.ID, &i.Email, &i.CreatedAt); err != nil {
+		if err := rows.Scan(&i.ID, &i.UserNo, &i.Email, &i.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -46,7 +47,7 @@ func (q *Queries) AdminListUsers(ctx context.Context) ([]AdminListUsersRow, erro
 }
 
 const adminGetUserByID = `-- name: AdminGetUserByID :one
-SELECT id, email, created_at
+SELECT id, user_no, email, created_at
 FROM users
 WHERE id = ?
 LIMIT 1
@@ -55,6 +56,6 @@ LIMIT 1
 func (q *Queries) AdminGetUserByID(ctx context.Context, id uint64) (AdminListUsersRow, error) {
 	row := q.db.QueryRowContext(ctx, adminGetUserByID, id)
 	var i AdminListUsersRow
-	err := row.Scan(&i.ID, &i.Email, &i.CreatedAt)
+	err := row.Scan(&i.ID, &i.UserNo, &i.Email, &i.CreatedAt)
 	return i, err
 }

@@ -1,0 +1,27 @@
+-- P2 CMS: business section metadata, homepage blocks, docs
+
+CREATE TABLE business_sections (
+  slug VARCHAR(32) NOT NULL PRIMARY KEY COMMENT '板块标识 program|luodi|cdn|resources|monetize',
+  label VARCHAR(64) NOT NULL COMMENT '展示名称',
+  icon VARCHAR(64) NOT NULL DEFAULT 'fa-circle' COMMENT 'Font Awesome 图标 class',
+  tagline VARCHAR(255) NOT NULL DEFAULT '' COMMENT '副标题',
+  description TEXT NOT NULL COMMENT '板块简介',
+  sort_order INT NOT NULL DEFAULT 0 COMMENT '排序',
+  enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否在前台展示',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='业务板块元数据';
+
+CREATE TABLE site_content (
+  content_key VARCHAR(64) NOT NULL PRIMARY KEY COMMENT '配置键，如 homepage',
+  content_json JSON NOT NULL COMMENT 'JSON 配置内容',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='站点可配置内容';
+
+CREATE TABLE docs (
+  slug VARCHAR(64) NOT NULL PRIMARY KEY COMMENT '文档 slug',
+  title VARCHAR(255) NOT NULL COMMENT '文档标题',
+  markdown MEDIUMTEXT NOT NULL COMMENT 'Markdown 正文',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='前台文档';

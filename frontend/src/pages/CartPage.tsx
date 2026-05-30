@@ -6,8 +6,8 @@ import { formatMinor } from '../util/money'
 
 export default function CartPage() {
   const nav = useNavigate()
-  const { token } = useAuth()
-  const { lines, setQty, removeLine, clearAll, setCheckoutLineIds } = useCart()
+  const { token, loading: authLoading } = useAuth()
+  const { lines, loading: cartLoading, setQty, removeLine, clearAll, setCheckoutLineIds } = useCart()
   const [selected, setSelected] = useState<Record<number, boolean>>({})
 
   const allIds = lines.map((l) => l.id)
@@ -45,13 +45,65 @@ export default function CartPage() {
 
   function goCheckout() {
     if (selectedLines.length === 0) return
-    const ids = selectedLines.map((l) => l.id)
-    setCheckoutLineIds(ids)
     if (!token) {
       nav('/login?from=/checkout')
       return
     }
+    const ids = selectedLines.map((l) => l.id)
+    setCheckoutLineIds(ids)
     nav('/checkout')
+  }
+
+  if (authLoading || (token && cartLoading && lines.length === 0)) {
+    return (
+      <>
+        <section className="breadcrumb breadcrumb-compact">
+          <div className="container">
+            <div className="breadcrumb-content">
+              <Link to="/">
+                <i className="fas fa-home" /> 首页
+              </Link>
+              <i className="fas fa-chevron-right" />
+              <span>购物车</span>
+            </div>
+          </div>
+        </section>
+        <div className="container cart-page-wrap">
+          <p className="muted">加载中…</p>
+        </div>
+      </>
+    )
+  }
+
+  if (!token) {
+    return (
+      <>
+        <section className="breadcrumb breadcrumb-compact">
+          <div className="container">
+            <div className="breadcrumb-content">
+              <Link to="/">
+                <i className="fas fa-home" /> 首页
+              </Link>
+              <i className="fas fa-chevron-right" />
+              <span>购物车</span>
+            </div>
+          </div>
+        </section>
+        <div className="container cart-page-wrap">
+          <div className="cart-empty-static">
+            <i className="fas fa-user-lock" style={{ fontSize: '3rem', opacity: 0.35 }} />
+            <p>请先登录后再使用购物车</p>
+            <p className="muted">登录后可将模板加入购物车并结算</p>
+            <Link to="/login?from=/cart" className="btn btn-primary">
+              去登录
+            </Link>
+            <Link to="/products" className="btn btn-secondary" style={{ marginLeft: 12 }}>
+              浏览模板
+            </Link>
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
@@ -72,10 +124,10 @@ export default function CartPage() {
         <div className="cart-page-toolbar">
           <div>
             <h2 className="cart-page-title">我的购物车</h2>
-            <p className="cart-page-sub">已选模板可调整数量，登录后可前往结算</p>
+            <p className="cart-page-sub">已选模板可调整数量，勾选后前往结算</p>
           </div>
           <div className="deleteBtns">
-            <button type="button" className="btn-delete" onClick={() => clearAll()}>
+            <button type="button" className="btn-delete" onClick={() => void clearAll()}>
               删除全部
             </button>
           </div>
@@ -145,7 +197,7 @@ export default function CartPage() {
                             type="button"
                             className="cart-qty-btn"
                             disabled={item.qty <= 1}
-                            onClick={() => setQty(item.id, item.qty - 1)}
+                            onClick={() => void setQty(item.id, item.qty - 1)}
                           >
                             -
                           </button>
@@ -155,13 +207,13 @@ export default function CartPage() {
                             min={1}
                             value={item.qty}
                             onChange={(ev) =>
-                              setQty(item.id, parseInt(ev.target.value, 10) || 1)
+                              void setQty(item.id, parseInt(ev.target.value, 10) || 1)
                             }
                           />
                           <button
                             type="button"
                             className="cart-qty-btn"
-                            onClick={() => setQty(item.id, item.qty + 1)}
+                            onClick={() => void setQty(item.id, item.qty + 1)}
                           >
                             +
                           </button>
@@ -174,7 +226,7 @@ export default function CartPage() {
                         <button
                           type="button"
                           className="btn btn-secondary btn-remove-line"
-                          onClick={() => removeLine(item.id)}
+                          onClick={() => void removeLine(item.id)}
                         >
                           移除
                         </button>

@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -18,7 +19,31 @@ func NewDashboardHandler(q *db.Queries) *DashboardHandler {
 	return &DashboardHandler{Q: q}
 }
 
-const dashboardTrendDays = 7
+const dashboardTrendDaysDefault = 7
+const dashboardTrendDaysMax = 90
+
+func parseDashboardDays(raw string) int {
+	switch strings.TrimSpace(raw) {
+	case "30":
+		return 30
+	case "90":
+		return 90
+	default:
+		return dashboardTrendDaysDefault
+	}
+}
+
+func queryDashboardDays(c echo.Context, key string) int {
+	return parseDashboardDays(c.QueryParam(key))
+}
+
+func intervalDaysFor(days int) int32 {
+	interval := int32(days - 1)
+	if interval < 0 {
+		return 0
+	}
+	return interval
+}
 
 type dashboardStatsJSON struct {
 	UsersCount         int64 `json:"users_count"`
@@ -48,9 +73,11 @@ type topProductSalesJSON struct {
 }
 
 type dashboardTrendsJSON struct {
-	Days        int                   `json:"days"`
+	UsersDays   int                   `json:"users_days"`
 	Users       []dailyCountJSON      `json:"users"`
+	OrdersDays  int                   `json:"orders_days"`
 	Orders      []dailyCountJSON      `json:"orders"`
+	TopDays     int                   `json:"top_days"`
 	Summary     trendSummaryJSON      `json:"summary"`
 	TopProducts []topProductSalesJSON `json:"top_products"`
 }
@@ -103,6 +130,9 @@ func dailyOrdersMap(rows []db.AdminDailyNewOrdersRow) map[string]int64 {
 func (h *DashboardHandler) GetDashboard(c echo.Context) error {
 	ctx := c.Request().Context()
 	now := time.Now()
+	userDays := queryDashboardDays(c, "user_days")
+	orderDays := queryDashboardDays(c, "order_days")
+	topDays := queryDashboardDays(c, "top_days")
 
 	usersCount, err := h.Q.AdminCountUsers(ctx)
 	if err != nil {
@@ -146,15 +176,15 @@ func (h *DashboardHandler) GetDashboard(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "统计昨日订单失败")
 	}
 
-	userDailyRows, err := h.Q.AdminDailyNewUsers(ctx)
+	userDailyRows, err := h.Q.AdminDailyNewUsersSince(ctx, intervalDaysFor(userDays))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "获取每日新增用户失败")
 	}
-	orderDailyRows, err := h.Q.AdminDailyNewOrders(ctx)
+	orderDailyRows, err := h.Q.AdminDailyNewOrdersSince(ctx, intervalDaysFor(orderDays))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "获取每日新增订单失败")
 	}
-	topProductRows, err := h.Q.AdminTopProductSales(ctx)
+	topProductRows, err := h.Q.AdminTopProductSalesSince(ctx, intervalDaysFor(topDays))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "获取热销商品失败")
 	}
@@ -177,9 +207,11 @@ func (h *DashboardHandler) GetDashboard(c echo.Context) error {
 			RevenueMinor:       revenueMinor,
 		},
 		Trends: dashboardTrendsJSON{
-			Days:   dashboardTrendDays,
-			Users:  buildDailySeries(dashboardTrendDays, dailyUsersMap(userDailyRows), now),
-			Orders: buildDailySeries(dashboardTrendDays, dailyOrdersMap(orderDailyRows), now),
+			UsersDays:  userDays,
+			Users:      buildDailySeries(userDays, dailyUsersMap(userDailyRows), now),
+			OrdersDays: orderDays,
+			Orders:     buildDailySeries(orderDays, dailyOrdersMap(orderDailyRows), now),
+			TopDays:    topDays,
 			Summary: trendSummaryJSON{
 				YesterdayUsers:  usersYesterday,
 				YesterdayOrders: ordersYesterday,

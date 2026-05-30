@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage'
 import AccountPage from './pages/AccountPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
+import OrderDetailPage from './pages/OrderDetailPage'
 import DocsPage from './pages/DocsPage'
 import BusinessSectionPage from './pages/BusinessSectionPage'
 import { BUSINESS_SECTIONS } from './lib/businessSections'
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="account" element={<AccountPage />} />
+        <Route path="account/orders/:id" element={<OrderDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -2,12 +2,14 @@
 
 CREATE TABLE orders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '订单 ID',
+  order_no VARCHAR(20) NOT NULL COMMENT '对外订单号：MS+YYMMDD+8位随机（首位字母）',
   user_id BIGINT UNSIGNED NOT NULL COMMENT '下单用户 ID，关联 users.id',
   status VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT '订单状态：pending 待支付 | paid 已支付 | cancelled 已取消 | refunded 已退款',
   total_amount_minor BIGINT NOT NULL DEFAULT 0 COMMENT '订单总金额（最小货币单位，如分），为明细行合计',
   currency CHAR(3) NOT NULL COMMENT '币种（ISO 4217，如 USD/CNY）',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '下单时间',
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  UNIQUE KEY orders_order_no_uq (order_no),
   KEY orders_user_id_idx (user_id),
   KEY orders_status_idx (status),
   KEY orders_created_at_idx (created_at),

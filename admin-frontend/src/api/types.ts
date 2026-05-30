@@ -28,8 +28,22 @@ export type Product = {
   preview_url?: string | null
   sort_order: number
   recommended: boolean
+  visible: boolean
   downloads: number
   score: number
+  created_at: string
+}
+
+export type AdminAuditLog = {
+  id: number
+  admin_id: number
+  admin_account: string
+  admin_nickname: string
+  action: string
+  resource: string
+  resource_id: string
+  detail: string
+  ip: string
   created_at: string
 }
 
@@ -51,6 +65,7 @@ export type AdminMeResponse = {
 
 export type AdminUser = {
   id: number
+  user_no: string
   email: string
   created_at: string
 }
@@ -65,6 +80,7 @@ export type AdminOrderItem = {
 
 export type AdminOrder = {
   id: number
+  order_no: string
   user_id: number
   user_email: string
   status: string
@@ -105,9 +121,11 @@ export type TopProductSales = {
 }
 
 export type DashboardTrends = {
-  days: number
+  users_days: number
   users: DailyCount[]
+  orders_days: number
   orders: DailyCount[]
+  top_days: number
   summary: DashboardTrendSummary
   top_products: TopProductSales[]
 }
@@ -115,4 +133,67 @@ export type DashboardTrends = {
 export type DashboardData = {
   stats: DashboardStats
   trends: DashboardTrends
+}
+
+export type BusinessSectionMeta = {
+  slug: string
+  label: string
+  icon: string
+  tagline: string
+  description: string
+  sort_order: number
+  enabled: boolean
+}
+
+export type HomepageButton = {
+  label: string
+  to: string
+}
+
+export type HomepageHero = {
+  title: string
+  subtitle: string
+  primary_button: HomepageButton
+  secondary_button: HomepageButton
+}
+
+export type HomepageCategoryCard = {
+  icon: string
+  title: string
+  description: string
+  to: string
+}
+
+export type HomepageFeature = {
+  icon: string
+  title: string
+  text: string
+}
+
+export type HomepageContent = {
+  hero: HomepageHero
+  category_cards: HomepageCategoryCard[]
+  features: HomepageFeature[]
+}
+
+export type ProductBatchDeleteResult = {
+  deleted: number[]
+  blocked: { id: number; reason: string }[]
+}
+
+export type ProductBatchUpdateResult = {
+  updated: number[]
+}
+
+export type DocSummary = {
+  slug: string
+  title: string
+  updated_at: string
+}
+
+export type DocDetail = {
+  slug: string
+  title: string
+  markdown: string
+  updated_at: string
 }

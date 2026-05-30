@@ -17,6 +17,7 @@ type orderItemJSON struct {
 
 type orderSummaryJSON struct {
 	ID               uint64          `json:"id"`
+	OrderNo          string          `json:"order_no"`
 	UserID           uint64          `json:"user_id"`
 	UserEmail        string          `json:"user_email"`
 	Status           string          `json:"status"`
@@ -32,6 +33,7 @@ type orderSummaryJSON struct {
 func orderRowToSummary(o db.AdminListOrdersRow) orderSummaryJSON {
 	summary := orderSummaryJSON{
 		ID:               o.ID,
+		OrderNo:          o.OrderNo,
 		UserID:           o.UserID,
 		UserEmail:        o.UserEmail,
 		Status:           o.Status,
@@ -50,6 +52,7 @@ func orderRowToSummary(o db.AdminListOrdersRow) orderSummaryJSON {
 func orderHeaderToSummary(h db.AdminGetOrderByIDRow, items []db.AdminListOrderItemsRow) orderSummaryJSON {
 	out := orderSummaryJSON{
 		ID:               h.ID,
+		OrderNo:          h.OrderNo,
 		UserID:           h.UserID,
 		UserEmail:        h.UserEmail,
 		Status:           h.Status,

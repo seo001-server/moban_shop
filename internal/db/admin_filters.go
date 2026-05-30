@@ -3,27 +3,31 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 type AdminOrdersFilterArgs struct {
-	StatusFlag string
-	Status     string
-	QueryFlag  string
-	Query      string
-	FromFlag   string
-	From       string
-	ToFlag     string
-	To         string
+	StatusFlag  string
+	Status      string
+	QueryFlag   string
+	Query       string
+	OrderNoFlag string
+	OrderNo     string
+	FromFlag    string
+	From        string
+	ToFlag      string
+	To          string
 }
 
-func NewAdminOrdersFilterArgs(status, query, from, to string) AdminOrdersFilterArgs {
+func NewAdminOrdersFilterArgs(status, query, from, to, orderNo string) AdminOrdersFilterArgs {
 	a := AdminOrdersFilterArgs{}
 	if status != "" {
 		a.StatusFlag, a.Status = status, status
 	}
 	if query != "" {
 		a.QueryFlag, a.Query = query, query
+	}
+	if orderNo != "" {
+		a.OrderNoFlag, a.OrderNo = orderNo, orderNo
 	}
 	if from != "" {
 		a.FromFlag, a.From = from, from
@@ -68,6 +72,7 @@ FROM orders o
 INNER JOIN users u ON u.id = o.user_id
 WHERE (? = '' OR o.status = ?)
   AND (? = '' OR u.email LIKE CONCAT('%', ?, '%'))
+  AND (? = '' OR o.order_no = ?)
   AND (? = '' OR o.created_at >= ?)
   AND (? = '' OR o.created_at < DATE_ADD(?, INTERVAL 1 DAY))
 `
@@ -76,6 +81,7 @@ func (q *Queries) AdminCountOrdersFiltered(ctx context.Context, arg AdminOrdersF
 	row := q.db.QueryRowContext(ctx, adminCountOrdersFiltered,
 		arg.StatusFlag, arg.Status,
 		arg.QueryFlag, arg.Query,
+		arg.OrderNoFlag, arg.OrderNo,
 		arg.FromFlag, arg.From,
 		arg.ToFlag, arg.To,
 	)
@@ -87,6 +93,7 @@ func (q *Queries) AdminCountOrdersFiltered(ctx context.Context, arg AdminOrdersF
 const adminListOrdersFilteredPaged = `-- name: AdminListOrdersFilteredPaged :many
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   u.email AS user_email,
   o.status,
@@ -106,9 +113,10 @@ LEFT JOIN order_items oi ON oi.order_id = o.id
 LEFT JOIN products p ON p.id = oi.product_id
 WHERE (? = '' OR o.status = ?)
   AND (? = '' OR u.email LIKE CONCAT('%', ?, '%'))
+  AND (? = '' OR o.order_no = ?)
   AND (? = '' OR o.created_at >= ?)
   AND (? = '' OR o.created_at < DATE_ADD(?, INTERVAL 1 DAY))
-GROUP BY o.id, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
+GROUP BY o.id, o.order_no, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
 ORDER BY o.created_at DESC, o.id DESC
 LIMIT ? OFFSET ?
 `
@@ -117,6 +125,7 @@ func (q *Queries) AdminListOrdersFilteredPaged(ctx context.Context, arg AdminOrd
 	rows, err := q.db.QueryContext(ctx, adminListOrdersFilteredPaged,
 		arg.StatusFlag, arg.Status,
 		arg.QueryFlag, arg.Query,
+		arg.OrderNoFlag, arg.OrderNo,
 		arg.FromFlag, arg.From,
 		arg.ToFlag, arg.To,
 		limit, offset,
@@ -128,96 +137,27 @@ func (q *Queries) AdminListOrdersFilteredPaged(ctx context.Context, arg AdminOrd
 	return scanAdminListOrdersRows(rows)
 }
 
-type AdminListOrdersExportRow struct {
-	ID               uint64         `json:"id"`
-	UserEmail        string         `json:"user_email"`
-	Status           string         `json:"status"`
-	TotalAmountMinor int64          `json:"total_amount_minor"`
-	Currency         string         `json:"currency"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-	ItemsSummary     sql.NullString `json:"items_summary"`
-}
-
-const adminListOrdersForExport = `-- name: AdminListOrdersForExport :many
-SELECT
-  o.id,
-  u.email AS user_email,
-  o.status,
-  o.total_amount_minor,
-  o.currency,
-  o.created_at,
-  o.updated_at,
-  GROUP_CONCAT(
-    CONCAT(p.title, IF(oi.quantity > 1, CONCAT(' ×', oi.quantity), ''))
-    ORDER BY oi.id
-    SEPARATOR '、'
-  ) AS items_summary
-FROM orders o
-INNER JOIN users u ON u.id = o.user_id
-LEFT JOIN order_items oi ON oi.order_id = o.id
-LEFT JOIN products p ON p.id = oi.product_id
-WHERE (? = '' OR o.status = ?)
-  AND (? = '' OR u.email LIKE CONCAT('%', ?, '%'))
-  AND (? = '' OR o.created_at >= ?)
-  AND (? = '' OR o.created_at < DATE_ADD(?, INTERVAL 1 DAY))
-GROUP BY o.id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
-ORDER BY o.created_at DESC, o.id DESC
-LIMIT 5000
-`
-
-func (q *Queries) AdminListOrdersForExport(ctx context.Context, arg AdminOrdersFilterArgs) ([]AdminListOrdersExportRow, error) {
-	rows, err := q.db.QueryContext(ctx, adminListOrdersForExport,
-		arg.StatusFlag, arg.Status,
-		arg.QueryFlag, arg.Query,
-		arg.FromFlag, arg.From,
-		arg.ToFlag, arg.To,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []AdminListOrdersExportRow{}
-	for rows.Next() {
-		var i AdminListOrdersExportRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserEmail,
-			&i.Status,
-			&i.TotalAmountMinor,
-			&i.Currency,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.ItemsSummary,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	return items, rows.Err()
-}
-
 const adminCountUsersFiltered = `-- name: AdminCountUsersFiltered :one
 SELECT COUNT(*) AS count FROM users
-WHERE (? = '' OR email LIKE CONCAT('%', ?, '%'))
+WHERE (? = '' OR email LIKE CONCAT('%', ?, '%') OR user_no = ?)
 `
 
-func (q *Queries) AdminCountUsersFiltered(ctx context.Context, query string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, adminCountUsersFiltered, query, query)
+func (q *Queries) AdminCountUsersFiltered(ctx context.Context, query, userNoQuery string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, adminCountUsersFiltered, query, query, userNoQuery)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
 const adminListUsersFilteredPaged = `-- name: AdminListUsersFilteredPaged :many
-SELECT id, email, created_at FROM users
-WHERE (? = '' OR email LIKE CONCAT('%', ?, '%'))
+SELECT id, user_no, email, created_at FROM users
+WHERE (? = '' OR email LIKE CONCAT('%', ?, '%') OR user_no = ?)
 ORDER BY id DESC
 LIMIT ? OFFSET ?
 `
 
-func (q *Queries) AdminListUsersFilteredPaged(ctx context.Context, query string, limit, offset int32) ([]AdminListUsersRow, error) {
-	rows, err := q.db.QueryContext(ctx, adminListUsersFilteredPaged, query, query, limit, offset)
+func (q *Queries) AdminListUsersFilteredPaged(ctx context.Context, query, userNoQuery string, limit, offset int32) ([]AdminListUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, adminListUsersFilteredPaged, query, query, userNoQuery, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +165,7 @@ func (q *Queries) AdminListUsersFilteredPaged(ctx context.Context, query string,
 	items := []AdminListUsersRow{}
 	for rows.Next() {
 		var i AdminListUsersRow
-		if err := rows.Scan(&i.ID, &i.Email, &i.CreatedAt); err != nil {
+		if err := rows.Scan(&i.ID, &i.UserNo, &i.Email, &i.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -252,7 +192,7 @@ func (q *Queries) AdminCountProductsFiltered(ctx context.Context, arg AdminProdu
 }
 
 const adminListProductsFilteredPaged = `-- name: AdminListProductsFilteredPaged :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE (? = '' OR category = ?)
   AND (? = '' OR recommended = ?)
@@ -275,22 +215,7 @@ func (q *Queries) AdminListProductsFilteredPaged(ctx context.Context, arg AdminP
 	items := []Product{}
 	for rows.Next() {
 		var i Product
-		if err := rows.Scan(
-			&i.ID,
-			&i.Slug,
-			&i.Category,
-			&i.Title,
-			&i.Description,
-			&i.PriceMinor,
-			&i.Currency,
-			&i.ImageUrl,
-			&i.PreviewUrl,
-			&i.SortOrder,
-			&i.Recommended,
-			&i.Downloads,
-			&i.Score,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(scanProductFields(&i)...); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -304,6 +229,7 @@ func scanAdminListOrdersRows(rows *sql.Rows) ([]AdminListOrdersRow, error) {
 		var i AdminListOrdersRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.OrderNo,
 			&i.UserID,
 			&i.UserEmail,
 			&i.Status,

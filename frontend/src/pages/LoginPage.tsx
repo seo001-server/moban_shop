@@ -3,19 +3,23 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/http'
 import type { TokenResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 export default function LoginPage() {
   const nav = useNavigate()
   const [search] = useSearchParams()
   const from = search.get('from') || '/account'
   const { setSessionFromToken } = useAuth()
+  const { showToast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   async function onSubmit(ev: FormEvent) {
     ev.preventDefault()
     setErr(null)
+    setSubmitting(true)
     try {
       const res = await apiFetch<TokenResponse>('/api/auth/login', {
         method: 'POST',
@@ -23,6 +27,7 @@ export default function LoginPage() {
         skipAuth: true,
       })
       await setSessionFromToken(res.access_token)
+      showToast('登录成功')
       nav(from.startsWith('/') ? from : '/account', { replace: true })
     } catch (e) {
       if (e instanceof ApiError) {
@@ -30,6 +35,8 @@ export default function LoginPage() {
       } else {
         setErr('登录失败')
       }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -64,8 +71,8 @@ export default function LoginPage() {
               required
             />
           </label>
-          <button type="submit" className="btn btn-register auth-submit-wide">
-            登录
+          <button type="submit" className="btn btn-register auth-submit-wide" disabled={submitting}>
+            {submitting ? '登录中…' : '登录'}
           </button>
         </form>
         {err ? (
@@ -74,7 +81,10 @@ export default function LoginPage() {
           </p>
         ) : null}
         <p className="auth-switch muted">
-          没有账号？<Link to="/register">去注册</Link>
+          没有账号？
+          <Link to={from !== '/account' ? `/register?from=${encodeURIComponent(from)}` : '/register'}>
+            去注册
+          </Link>
         </p>
       </div>
     </div>

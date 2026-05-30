@@ -3,11 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/http'
 import { adminApiFetch } from '../api/adminHttp'
 import type { AdminOrder } from '../api/types'
+import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/Toast'
 import { formatDateTime, formatMoney, formatOrderStatus, orderStatusClass } from '../utils/format'
 
 export default function OrderDetailPage() {
   const { id } = useParams()
   const nav = useNavigate()
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const { showToast } = useToast()
   const orderId = Number(id)
   const [order, setOrder] = useState<AdminOrder | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -42,7 +46,14 @@ export default function OrderDetailPage() {
   }, [load])
 
   async function changeStatus(status: string, label: string) {
-    if (!order || !confirm(`确认将订单 #${order.id} 标记为「${label}」？`)) return
+    if (!order) return
+    const ok = await confirm({
+      title: '修改订单状态',
+      message: `确认将订单 ${order.order_no} 标记为「${label}」？`,
+      confirmLabel: label,
+      danger: status === 'cancelled' || status === 'refunded',
+    })
+    if (!ok) return
     setUpdating(true)
     try {
       const res = await adminApiFetch<AdminOrder>(`/api/admin/orders/${order.id}/status`, {
@@ -50,10 +61,9 @@ export default function OrderDetailPage() {
         body: JSON.stringify({ status }),
       })
       setOrder(res)
+      showToast(`订单已标记为「${label}」`, 'success')
     } catch (e) {
-      if (e instanceof ApiError) {
-        alert(e.message)
-      }
+      showToast(e instanceof ApiError ? e.message : '更新失败', 'error')
     } finally {
       setUpdating(false)
     }
@@ -85,12 +95,14 @@ export default function OrderDetailPage() {
 
   return (
     <div className="page">
+      {confirmDialog}
       <div className="page-header">
         <div className="page-header__text">
           <Link to="/orders" className="page-back">
             返回列表
           </Link>
-          <h1>订单 #{order.id}</h1>
+          <h1>{order.order_no}</h1>
+          <p className="page-header__desc muted small">内部 ID #{order.id}</p>
           <p className="page-header__desc">
             <span className={`badge ${orderStatusClass(order.status)}`}>{formatOrderStatus(order.status)}</span>
             {' · '}

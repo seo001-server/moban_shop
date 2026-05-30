@@ -73,8 +73,8 @@ a {
     color: var(--text-light);
 }
 
-/* 导航栏样式 */
-header {
+/* 导航栏样式（仅站点顶栏，避免误伤页面内 section header） */
+header.site-header {
     background-color: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(10px);
     position: fixed;
@@ -576,7 +576,7 @@ footer {
     text-decoration: none;
     width: 56px;
     /* 只显示图标时的宽度 */
-    overflow: hidden;
+    overflow: visible;
 }
 
 .cart-float-btn:hover {
@@ -588,7 +588,7 @@ footer {
     padding: 14px 22px 14px 18px;
 }
 
-.cart-float-btn:hover .fa-shopping-cart {
+.cart-float-btn:hover .cart-icon-wrap {
     margin-right: 10px;
 }
 
@@ -599,10 +599,12 @@ footer {
     pointer-events: auto;
 }
 
-.cart-float-btn .fa-shopping-cart {
-    margin-right: 0;
-    font-size: 1.4rem;
+.cart-float-btn .cart-icon-wrap {
     transition: margin 0.3s;
+}
+
+.cart-float-btn .fa-shopping-cart {
+    font-size: 1.4rem;
 }
 
 .cart-float-text {

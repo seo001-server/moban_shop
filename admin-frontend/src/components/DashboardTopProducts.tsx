@@ -1,23 +1,29 @@
 import type { TopProductSales } from '../api/types'
+import { DashboardDaysRange, type DashboardDays } from './DashboardDaysRange'
 
 type Props = {
   items: TopProductSales[]
+  days: DashboardDays
+  onDaysChange: (days: DashboardDays) => void
 }
 
-export default function DashboardTopProducts({ items }: Props) {
+export default function DashboardTopProducts({ items, days, onDaysChange }: Props) {
   const maxQty = Math.max(...items.map((item) => item.sales_qty), 1)
 
   return (
     <div className="dashboard-panel">
       <div className="dashboard-panel__head">
-        <h3 className="dashboard-panel__title">模板销量 TOP5</h3>
-        <p className="dashboard-panel__meta">按已支付订单销量统计</p>
+        <div className="dashboard-panel__head-row">
+          <h3 className="dashboard-panel__title">模板销量 TOP5</h3>
+          <p className="dashboard-panel__meta">近 {days} 日已支付订单销量</p>
+        </div>
+        <DashboardDaysRange value={days} onChange={onDaysChange} label="模板销量日期范围" />
       </div>
 
       {items.length === 0 ? (
         <div className="dashboard-panel__empty">
           <p>暂无销量数据</p>
-          <span className="muted small">有已支付订单后会显示排行</span>
+          <span className="muted small">该时间范围内无已支付订单</span>
         </div>
       ) : (
         <ul className="dashboard-top-list">

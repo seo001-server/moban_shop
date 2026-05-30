@@ -1,6 +1,7 @@
 -- name: AdminListOrders :many
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   u.email AS user_email,
   o.status,
@@ -18,12 +19,13 @@ FROM orders o
 INNER JOIN users u ON u.id = o.user_id
 LEFT JOIN order_items oi ON oi.order_id = o.id
 LEFT JOIN products p ON p.id = oi.product_id
-GROUP BY o.id, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
+GROUP BY o.id, o.order_no, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
 ORDER BY o.created_at DESC, o.id DESC;
 
 -- name: AdminListRecentOrders :many
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   u.email AS user_email,
   o.status,
@@ -41,13 +43,14 @@ FROM orders o
 INNER JOIN users u ON u.id = o.user_id
 LEFT JOIN order_items oi ON oi.order_id = o.id
 LEFT JOIN products p ON p.id = oi.product_id
-GROUP BY o.id, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
+GROUP BY o.id, o.order_no, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
 ORDER BY o.created_at DESC, o.id DESC
 LIMIT ?;
 
 -- name: AdminGetOrderByID :one
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   u.email AS user_email,
   o.status,

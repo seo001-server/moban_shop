@@ -1,6 +1,6 @@
 -- name: CreateOrder :execresult
-INSERT INTO orders (user_id, status, total_amount_minor, currency)
-VALUES (?, ?, ?, ?);
+INSERT INTO orders (order_no, user_id, status, total_amount_minor, currency)
+VALUES (?, ?, ?, ?, ?);
 
 -- name: CreateOrderItem :execresult
 INSERT INTO order_items (order_id, product_id, quantity, unit_price_minor)
@@ -12,6 +12,7 @@ SELECT COUNT(*) AS count FROM orders WHERE user_id = ?;
 -- name: ListOrdersByUserPaged :many
 SELECT
   o.id,
+  o.order_no,
   o.status,
   o.total_amount_minor,
   o.currency,
@@ -33,6 +34,7 @@ LIMIT ? OFFSET ?;
 -- name: GetOrderHeaderForUser :one
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   o.status,
   o.total_amount_minor,
@@ -47,7 +49,10 @@ SELECT
   oi.id,
   oi.order_id,
   oi.product_id,
+  p.slug AS product_slug,
   p.title AS product_title,
+  p.preview_url AS product_preview_url,
+  p.image_url AS product_image_url,
   oi.quantity,
   oi.unit_price_minor
 FROM order_items oi

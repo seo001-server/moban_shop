@@ -34,3 +34,7 @@ export function loadCart(): CartLine[] {
 export function saveCart(lines: CartLine[]) {
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(lines))
 }
+
+export function clearStoredCart() {
+  localStorage.removeItem(CART_STORAGE_KEY)
+}

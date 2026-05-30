@@ -15,6 +15,7 @@ import (
 	"moban_shop/internal/apiresp"
 	"moban_shop/internal/auth"
 	"moban_shop/internal/db"
+	"moban_shop/internal/orderno"
 )
 
 type Handler struct {
@@ -37,15 +38,19 @@ type createOrderBody struct {
 }
 
 type orderItemJSON struct {
-	ProductID      uint64 `json:"product_id"`
-	ProductTitle   string `json:"product_title"`
-	Quantity       uint32 `json:"quantity"`
-	UnitPriceMinor int64  `json:"unit_price_minor"`
-	LineTotalMinor int64  `json:"line_total_minor"`
+	ProductID      uint64  `json:"product_id"`
+	ProductSlug    string  `json:"product_slug"`
+	ProductTitle   string  `json:"product_title"`
+	PreviewURL     *string `json:"preview_url,omitempty"`
+	ImageURL       *string `json:"image_url,omitempty"`
+	Quantity       uint32  `json:"quantity"`
+	UnitPriceMinor int64   `json:"unit_price_minor"`
+	LineTotalMinor int64   `json:"line_total_minor"`
 }
 
 type orderJSON struct {
 	ID               uint64          `json:"id"`
+	OrderNo          string          `json:"order_no"`
 	Status           string          `json:"status"`
 	TotalAmountMinor int64           `json:"total_amount_minor"`
 	Currency         string          `json:"currency"`
@@ -107,14 +112,31 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	defer func() { _ = tx.Rollback() }()
 
 	qtx := h.Q.WithTx(tx)
-	res, err := qtx.CreateOrder(ctx, db.CreateOrderParams{
-		UserID:           uid,
-		Status:           status,
-		TotalAmountMinor: total,
-		Currency:         currency,
-	})
-	if err != nil {
+	now := time.Now().UTC()
+	const maxOrderNoRetries = 8
+	var (
+		res     sql.Result
+		orderNo string
+	)
+	for attempt := 0; attempt < maxOrderNoRetries; attempt++ {
+		orderNo = orderno.Generate(now)
+		res, err = qtx.CreateOrder(ctx, db.CreateOrderParams{
+			OrderNo:          orderNo,
+			UserID:           uid,
+			Status:           status,
+			TotalAmountMinor: total,
+			Currency:         currency,
+		})
+		if err == nil {
+			break
+		}
+		if isDuplicateKey(err) {
+			continue
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "创建订单失败")
+	}
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "生成订单号失败，请重试")
 	}
 	orderID, err := res.LastInsertId()
 	if err != nil || orderID <= 0 {
@@ -136,7 +158,10 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 		lineTotal := ln.Product.PriceMinor * int64(ln.Quantity)
 		outItems = append(outItems, orderItemJSON{
 			ProductID:      ln.ProductID,
+			ProductSlug:    ln.Product.Slug,
 			ProductTitle:   ln.Product.Title,
+			PreviewURL:     nullStringPtr(ln.Product.PreviewUrl),
+			ImageURL:       nullStringPtr(ln.Product.ImageUrl),
 			Quantity:       ln.Quantity,
 			UnitPriceMinor: ln.Product.PriceMinor,
 			LineTotalMinor: lineTotal,
@@ -148,12 +173,22 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 		parts = append(parts, label)
 	}
 
+	for _, ln := range lines {
+		if _, err := qtx.DeleteCartItem(ctx, db.DeleteCartItemParams{
+			UserID:    uid,
+			ProductID: ln.ProductID,
+		}); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "清理购物车失败")
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "提交事务失败")
 	}
 
 	return apiresp.OK(c, orderJSON{
 		ID:               uint64(orderID),
+		OrderNo:          orderNo,
 		Status:           status,
 		TotalAmountMinor: total,
 		Currency:         currency,
@@ -277,6 +312,7 @@ func (h *Handler) validateItems(ctx context.Context, items []createItemBody) ([]
 func userRowToJSON(row db.ListOrdersByUserPagedRow) orderJSON {
 	out := orderJSON{
 		ID:               row.ID,
+		OrderNo:          row.OrderNo,
 		Status:           row.Status,
 		TotalAmountMinor: row.TotalAmountMinor,
 		Currency:         row.Currency,
@@ -292,6 +328,7 @@ func userRowToJSON(row db.ListOrdersByUserPagedRow) orderJSON {
 func headerToJSON(h db.GetOrderHeaderForUserRow, items []db.ListOrderItemsByOrderIDRow) orderJSON {
 	out := orderJSON{
 		ID:               h.ID,
+		OrderNo:          h.OrderNo,
 		Status:           h.Status,
 		TotalAmountMinor: h.TotalAmountMinor,
 		Currency:         h.Currency,
@@ -304,7 +341,10 @@ func headerToJSON(h db.GetOrderHeaderForUserRow, items []db.ListOrderItemsByOrde
 		lineTotal := it.UnitPriceMinor * int64(it.Quantity)
 		out.Items = append(out.Items, orderItemJSON{
 			ProductID:      it.ProductID,
+			ProductSlug:    it.ProductSlug,
 			ProductTitle:   it.ProductTitle,
+			PreviewURL:     nullStringPtr(it.ProductPreviewUrl),
+			ImageURL:       nullStringPtr(it.ProductImageUrl),
 			Quantity:       it.Quantity,
 			UnitPriceMinor: it.UnitPriceMinor,
 			LineTotalMinor: lineTotal,

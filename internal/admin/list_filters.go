@@ -8,6 +8,8 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"moban_shop/internal/db"
+	"moban_shop/internal/orderno"
+	"moban_shop/internal/userno"
 )
 
 var validOrderStatuses = map[string]struct{}{
@@ -33,7 +35,23 @@ func parseOrdersFilters(c echo.Context) (db.AdminOrdersFilterArgs, error) {
 	if err != nil {
 		return db.AdminOrdersFilterArgs{}, err
 	}
-	return db.NewAdminOrdersFilterArgs(status, query, from, to), nil
+	orderNo, err := parseOrderNoQuery(c.QueryParam("order_no"))
+	if err != nil {
+		return db.AdminOrdersFilterArgs{}, err
+	}
+	return db.NewAdminOrdersFilterArgs(status, query, from, to, orderNo), nil
+}
+
+func parseOrderNoQuery(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	normalized := orderno.Normalize(raw)
+	if !orderno.IsValid(normalized) {
+		return "", echo.NewHTTPError(http.StatusBadRequest, "订单号格式无效")
+	}
+	return normalized, nil
 }
 
 func parseProductsFilters(c echo.Context) (db.AdminProductsFilterArgs, error) {
@@ -53,8 +71,12 @@ func parseProductsFilters(c echo.Context) (db.AdminProductsFilterArgs, error) {
 	return db.NewAdminProductsFilterArgs(category, recommended, query), nil
 }
 
-func parseUsersQueryFilter(c echo.Context) string {
-	return strings.TrimSpace(c.QueryParam("q"))
+func parseUsersQueryFilter(c echo.Context) (query string, userNoQuery string) {
+	raw := strings.TrimSpace(c.QueryParam("q"))
+	if raw == "" {
+		return "", ""
+	}
+	return raw, userno.Normalize(raw)
 }
 
 func parseDateQuery(raw string) (string, error) {

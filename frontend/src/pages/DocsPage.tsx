@@ -4,9 +4,16 @@ import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
+import { apiFetch } from '../api/http'
 import templateDevMd from '../../../template-dev.md?raw'
 
 type TocItem = { depth: 2 | 3; text: string; id: string }
+
+type DocPayload = {
+  slug: string
+  title: string
+  markdown: string
+}
 
 function buildToc(md: string): TocItem[] {
   const slugger = new GithubSlugger()
@@ -27,8 +34,35 @@ function buildToc(md: string): TocItem[] {
 }
 
 export default function DocsPage() {
-  const toc = useMemo(() => buildToc(templateDevMd), [])
-  const [activeId, setActiveId] = useState(() => toc[0]?.id ?? '')
+  const [markdown, setMarkdown] = useState(templateDevMd)
+  const [loadErr, setLoadErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const doc = await apiFetch<DocPayload>('/api/docs/template-dev')
+        if (!alive) return
+        setMarkdown(doc.markdown)
+        setLoadErr(null)
+      } catch {
+        if (!alive) return
+        setLoadErr('无法加载在线文档，已使用本地副本')
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const toc = useMemo(() => buildToc(markdown), [markdown])
+  const [activeId, setActiveId] = useState('')
+
+  useEffect(() => {
+    if (toc.length > 0 && !activeId) {
+      setActiveId(toc[0].id)
+    }
+  }, [toc, activeId])
 
   const scrollSync = useCallback(() => {
     const root = document.querySelector('.docs-markdown')
@@ -59,7 +93,7 @@ export default function DocsPage() {
         setActiveId(hash)
       }
     }, 0)
-  }, [])
+  }, [markdown])
 
   function goToSection(id: string) {
     setActiveId(id)
@@ -80,6 +114,14 @@ export default function DocsPage() {
           </div>
         </div>
       </section>
+
+      {loadErr ? (
+        <div className="container">
+          <p className="muted small" role="status">
+            {loadErr}
+          </p>
+        </div>
+      ) : null}
 
       <section className="list-page docs-help-page">
         <div className="container docs-help-inner">
@@ -132,7 +174,7 @@ export default function DocsPage() {
                   },
                 }}
               >
-                {templateDevMd}
+                {markdown}
               </ReactMarkdown>
             </div>
           </article>

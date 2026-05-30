@@ -93,6 +93,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "签发令牌失败")
 	}
+	WriteAuditLog(ctx, h.Q, row.ID, AuditActionLogin, AuditResourceAdmin, auditResourceIDUint(row.ID), ClientIP(c), "")
 	return apiresp.OK(c, tr)
 }
 
@@ -169,6 +170,7 @@ func (h *AuthHandler) UpdateMe(c echo.Context) error {
 	out.Admin.ID = row.ID
 	out.Admin.Account = row.Account
 	out.Admin.Nickname = nickname
+	auditFromContext(c, h.Q, AuditActionAdminUpdateMe, AuditResourceAdmin, auditResourceIDUint(uid), "nickname="+nickname)
 	return apiresp.OK(c, out)
 }
 
@@ -208,5 +210,6 @@ func (h *AuthHandler) ChangePassword(c echo.Context) error {
 	if err := h.Q.AdminUpdatePassword(ctx, string(hash), uid); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "更新密码失败")
 	}
+	auditFromContext(c, h.Q, AuditActionAdminChangePassword, AuditResourceAdmin, auditResourceIDUint(uid), "")
 	return apiresp.OK(c, nil)
 }

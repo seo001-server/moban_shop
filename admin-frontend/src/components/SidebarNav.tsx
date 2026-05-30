@@ -47,6 +47,24 @@ function IconOrders() {
   )
 }
 
+function IconCms() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 3.5h10v9H3v-9Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M5 6.5h6M5 9h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconAudit() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 3.5h10v9H3v-9Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M5 6.5h6M5 9h4M5 11.5h2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function IconLogout() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -118,6 +136,34 @@ export function SidebarNav() {
           icon={<IconOrders />}
           label="订单管理"
           active={pathname.startsWith('/orders')}
+        />
+
+        <div className="admin-sidebar__group-label">站点内容</div>
+        <NavItem
+          to="/cms/sections"
+          icon={<IconCms />}
+          label="业务板块"
+          active={pathname.startsWith('/cms/sections')}
+        />
+        <NavItem
+          to="/cms/homepage"
+          icon={<IconCms />}
+          label="首页配置"
+          active={pathname.startsWith('/cms/homepage')}
+        />
+        <NavItem
+          to="/cms/docs/template-dev"
+          icon={<IconCms />}
+          label="开发文档"
+          active={pathname.startsWith('/cms/docs')}
+        />
+
+        <div className="admin-sidebar__group-label">系统</div>
+        <NavItem
+          to="/audit-logs"
+          icon={<IconAudit />}
+          label="审计日志"
+          active={pathname.startsWith('/audit-logs')}
         />
       </nav>
     </aside>

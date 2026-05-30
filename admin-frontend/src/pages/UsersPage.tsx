@@ -4,6 +4,7 @@ import { adminApiFetch } from '../api/adminHttp'
 import type { AdminUser, PaginatedList } from '../api/types'
 import { Dialog } from '../components/Dialog'
 import { Pagination } from '../components/Pagination'
+import { TableLoadingWrap } from '../components/TableLoadingWrap'
 import { UserOrdersPanel } from '../components/UserOrdersPanel'
 import { useServerPagination } from '../hooks/useServerPagination'
 import { useTabDocumentTitle } from '../tabs/useTabDocumentTitle'
@@ -35,7 +36,7 @@ export default function UsersPage() {
     [query],
   )
 
-  const { page, setPage, items, total, totalPages, loading, err } = useServerPagination({
+  const { page, setPage, items, total, totalPages, initialLoading, refreshing, err } = useServerPagination({
     fetchPage,
     resetKey: query,
   })
@@ -66,7 +67,7 @@ export default function UsersPage() {
     )
   }
 
-  if (loading && items.length === 0) {
+  if (initialLoading) {
     return <div className="loading-state">加载中…</div>
   }
 
@@ -87,11 +88,11 @@ export default function UsersPage() {
                 applySearch()
               }}
             >
-              <span className="filter-bar__label">邮箱搜索</span>
+              <span className="filter-bar__label">搜索</span>
               <input
                 type="search"
                 value={searchDraft}
-                placeholder="输入邮箱关键词"
+                placeholder="邮箱或 MU… UID"
                 onChange={(e) => setSearchDraft(e.target.value)}
               />
               <button type="submit" className="btn small">
@@ -110,11 +111,12 @@ export default function UsersPage() {
           </div>
         </div>
       ) : (
-        <div className="table-wrap">
+        <TableLoadingWrap refreshing={refreshing}>
           <table className="admin-table">
             <thead>
               <tr>
                 <th>ID</th>
+                <th>UID</th>
                 <th>邮箱</th>
                 <th>注册时间</th>
                 <th>操作</th>
@@ -124,6 +126,7 @@ export default function UsersPage() {
               {items.map((u) => (
                 <tr key={u.id}>
                   <td className="muted">{u.id}</td>
+                  <td>{u.user_no}</td>
                   <td>{u.email}</td>
                   <td className="muted small">{formatDateTime(u.created_at)}</td>
                   <td className="actions">
@@ -140,7 +143,7 @@ export default function UsersPage() {
             </tbody>
           </table>
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
+        </TableLoadingWrap>
       )}
 
       <Dialog open={dialogOpen} title={dialogTitle} onClose={() => setOrdersTarget(null)}>

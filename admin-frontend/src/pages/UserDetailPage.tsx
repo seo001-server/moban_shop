@@ -4,6 +4,7 @@ import { ApiError } from '../api/http'
 import { adminApiFetch } from '../api/adminHttp'
 import type { AdminOrder, AdminUser, PaginatedList } from '../api/types'
 import { Pagination } from '../components/Pagination'
+import { TableLoadingWrap } from '../components/TableLoadingWrap'
 import { useServerPagination } from '../hooks/useServerPagination'
 import { formatDateTime, formatMoney, formatOrderStatus, orderStatusClass } from '../utils/format'
 
@@ -43,7 +44,7 @@ export default function UserDetailPage() {
     [userId],
   )
 
-  const { page, setPage, items, total, totalPages, loading, err } = useServerPagination({
+  const { page, setPage, items, total, totalPages, initialLoading, refreshing, err } = useServerPagination({
     fetchPage: fetchOrders,
     resetKey: userId,
   })
@@ -74,7 +75,7 @@ export default function UserDetailPage() {
           </Link>
           <h1>{user.email}</h1>
           <p className="page-header__desc">
-            用户 ID {user.id} · 注册于 {formatDateTime(user.created_at)}
+            UID {user.user_no} · 注册于 {formatDateTime(user.created_at)}
           </p>
         </div>
       </div>
@@ -87,7 +88,7 @@ export default function UserDetailPage() {
         <div className="alert alert--error" role="alert">
           {err}
         </div>
-      ) : loading && items.length === 0 ? (
+      ) : initialLoading ? (
         <div className="loading-state">加载订单…</div>
       ) : total === 0 ? (
         <div className="card">
@@ -96,7 +97,7 @@ export default function UserDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="table-wrap">
+        <TableLoadingWrap refreshing={refreshing}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -126,7 +127,7 @@ export default function UserDetailPage() {
             </tbody>
           </table>
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
+        </TableLoadingWrap>
       )}
     </div>
   )

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from '../api/http'
 import { adminApiFetch } from '../api/adminHttp'
 import type { AdminOrder } from '../api/types'
+import { useConfirm } from './ConfirmDialog'
+import { useToast } from './Toast'
 import { formatDateTime, formatMoney, formatOrderStatus, formatPaidAt, orderStatusClass } from '../utils/format'
 
 type OrderDetailPanelProps = {
@@ -10,6 +12,8 @@ type OrderDetailPanelProps = {
 }
 
 export function OrderDetailPanel({ orderId, onUpdated }: OrderDetailPanelProps) {
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const { showToast } = useToast()
   const [order, setOrder] = useState<AdminOrder | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -35,7 +39,14 @@ export function OrderDetailPanel({ orderId, onUpdated }: OrderDetailPanelProps) 
   }, [load])
 
   async function changeStatus(status: string, label: string) {
-    if (!order || !confirm(`确认将订单 #${order.id} 标记为「${label}」？`)) return
+    if (!order) return
+    const ok = await confirm({
+      title: '修改订单状态',
+      message: `确认将订单 ${order.order_no} 标记为「${label}」？`,
+      confirmLabel: label,
+      danger: status === 'cancelled' || status === 'refunded',
+    })
+    if (!ok) return
     setUpdating(true)
     try {
       const res = await adminApiFetch<AdminOrder>(`/api/admin/orders/${order.id}/status`, {
@@ -43,9 +54,10 @@ export function OrderDetailPanel({ orderId, onUpdated }: OrderDetailPanelProps) 
         body: JSON.stringify({ status }),
       })
       setOrder(res)
+      showToast(`订单已标记为「${label}」`, 'success')
       onUpdated?.()
     } catch (e) {
-      if (e instanceof ApiError) alert(e.message)
+      showToast(e instanceof ApiError ? e.message : '更新失败', 'error')
     } finally {
       setUpdating(false)
     }
@@ -71,72 +83,79 @@ export function OrderDetailPanel({ orderId, onUpdated }: OrderDetailPanelProps) 
   }
 
   return (
-    <div className="stack">
-      <div className="order-detail-panel__head">
-        <div>
-          <span className={`badge ${orderStatusClass(order.status)}`}>{formatOrderStatus(order.status)}</span>
-          <p className="order-detail-panel__meta">
-            下单：{formatDateTime(order.created_at)}
-            {' · '}
-            支付：{formatPaidAt(order.status, order.updated_at)}
-          </p>
-        </div>
-        {actions.length > 0 ? (
-          <div className="row gap">
-            {actions.map((a) => (
-              <button
-                key={a.status}
-                type="button"
-                className={`btn small${a.status === 'cancelled' ? ' danger' : a.status === 'paid' ? ' primary' : ''}`}
-                disabled={updating}
-                onClick={() => void changeStatus(a.status, a.label)}
-              >
-                {a.label}
-              </button>
-            ))}
+    <>
+      {confirmDialog}
+      <div className="stack">
+        <div className="order-detail-panel__head">
+          <div>
+            <span className={`badge ${orderStatusClass(order.status)}`}>{formatOrderStatus(order.status)}</span>
+            <p className="order-detail-panel__meta">
+              下单：{formatDateTime(order.created_at)}
+              {' · '}
+              支付：{formatPaidAt(order.status, order.updated_at)}
+            </p>
           </div>
-        ) : null}
-      </div>
+          {actions.length > 0 ? (
+            <div className="row gap">
+              {actions.map((a) => (
+                <button
+                  key={a.status}
+                  type="button"
+                  className={`btn small${a.status === 'cancelled' ? ' danger' : a.status === 'paid' ? ' primary' : ''}`}
+                  disabled={updating}
+                  onClick={() => void changeStatus(a.status, a.label)}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
-      <dl className="kv-grid">
-        <div>
-          <dt>用户</dt>
-          <dd>{order.user_email}</dd>
-        </div>
-        <div>
-          <dt>金额</dt>
-          <dd>{formatMoney(order.total_amount_minor, order.currency)}</dd>
-        </div>
-        <div>
-          <dt>商品摘要</dt>
-          <dd>{order.items_summary || '—'}</dd>
-        </div>
-      </dl>
+        <dl className="kv-grid">
+          <div>
+            <dt>订单号</dt>
+            <dd>{order.order_no}</dd>
+          </div>
+          <div>
+            <dt>用户</dt>
+            <dd>{order.user_email}</dd>
+          </div>
+          <div>
+            <dt>金额</dt>
+            <dd>{formatMoney(order.total_amount_minor, order.currency)}</dd>
+          </div>
+          <div>
+            <dt>商品摘要</dt>
+            <dd>{order.items_summary || '—'}</dd>
+          </div>
+        </dl>
 
-      <div className="table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>商品 ID</th>
-              <th>商品</th>
-              <th>单价</th>
-              <th>数量</th>
-              <th>小计</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(order.items ?? []).map((it) => (
-              <tr key={`${it.product_id}-${it.quantity}`}>
-                <td className="muted">{it.product_id}</td>
-                <td>{it.product_title}</td>
-                <td>{formatMoney(it.unit_price_minor, order.currency)}</td>
-                <td>{it.quantity}</td>
-                <td>{formatMoney(it.line_total_minor, order.currency)}</td>
+        <div className="table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>商品 ID</th>
+                <th>商品</th>
+                <th>单价</th>
+                <th>数量</th>
+                <th>小计</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(order.items ?? []).map((it) => (
+                <tr key={`${it.product_id}-${it.quantity}`}>
+                  <td className="muted">{it.product_id}</td>
+                  <td>{it.product_title}</td>
+                  <td>{formatMoney(it.unit_price_minor, order.currency)}</td>
+                  <td>{it.quantity}</td>
+                  <td>{formatMoney(it.line_total_minor, order.currency)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -1,19 +1,30 @@
 import { type FormEvent, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/http'
 import type { TokenResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { useToast } from '../context/ToastContext'
+
+function authRedirectPath(from: string | null): string {
+  return from?.startsWith('/') ? from : '/account'
+}
 
 export default function RegisterPage() {
   const nav = useNavigate()
+  const [search] = useSearchParams()
+  const from = search.get('from')
+  const redirectTo = authRedirectPath(from)
   const { setSessionFromToken } = useAuth()
+  const { showToast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   async function onSubmit(ev: FormEvent) {
     ev.preventDefault()
     setErr(null)
+    setSubmitting(true)
     try {
       const res = await apiFetch<TokenResponse>('/api/auth/register', {
         method: 'POST',
@@ -21,13 +32,16 @@ export default function RegisterPage() {
         skipAuth: true,
       })
       await setSessionFromToken(res.access_token)
-      nav('/account', { replace: true })
+      showToast('注册成功')
+      nav(redirectTo, { replace: true })
     } catch (e) {
       if (e instanceof ApiError) {
         setErr(e.message)
       } else {
         setErr('注册失败')
       }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -63,8 +77,8 @@ export default function RegisterPage() {
               required
             />
           </label>
-          <button type="submit" className="btn btn-register auth-submit-wide">
-            创建账号
+          <button type="submit" className="btn btn-register auth-submit-wide" disabled={submitting}>
+            {submitting ? '创建中…' : '创建账号'}
           </button>
         </form>
         {err ? (
@@ -73,7 +87,8 @@ export default function RegisterPage() {
           </p>
         ) : null}
         <p className="auth-switch muted">
-          已有账号？<Link to="/login">去登录</Link>
+          已有账号？
+          <Link to={from ? `/login?from=${encodeURIComponent(from)}` : '/login'}>去登录</Link>
         </p>
       </div>
     </div>

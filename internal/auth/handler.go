@@ -12,6 +12,7 @@ import (
 
 	"moban_shop/internal/apiresp"
 	"moban_shop/internal/db"
+	"moban_shop/internal/userno"
 )
 
 const bcryptCost = bcrypt.DefaultCost
@@ -45,6 +46,7 @@ type tokenResponse struct {
 
 type userPublic struct {
 	ID        uint64    `json:"id"`
+	UserNo    string    `json:"user_no"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -76,15 +78,28 @@ func (h *Handler) Register(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "密码加密失败")
 	}
 
-	res, err := h.Q.CreateUser(ctx, db.CreateUserParams{
-		Email:        email,
-		PasswordHash: string(hash),
-	})
-	if err != nil {
-		if isDuplicateKey(err) {
-			return echo.NewHTTPError(http.StatusConflict, "该邮箱已注册")
+	const maxUserNoRetries = 8
+	var res sql.Result
+	var createErr error
+	for attempt := 0; attempt < maxUserNoRetries; attempt++ {
+		res, createErr = h.Q.CreateUser(ctx, db.CreateUserParams{
+			UserNo:       userno.Generate(),
+			Email:        email,
+			PasswordHash: string(hash),
+		})
+		if createErr == nil {
+			break
+		}
+		if isDuplicateKey(createErr) {
+			if _, gerr := h.Q.GetUserByEmail(ctx, email); gerr == nil {
+				return echo.NewHTTPError(http.StatusConflict, "该邮箱已注册")
+			}
+			continue
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "创建用户失败")
+	}
+	if createErr != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "生成用户 UID 失败，请重试")
 	}
 
 	insertID, err := res.LastInsertId()
@@ -170,6 +185,7 @@ func (h *Handler) Me(c echo.Context) error {
 	return apiresp.OK(c, meResponse{
 		User: userPublic{
 			ID:        u.ID,
+			UserNo:    u.UserNo,
 			Email:     u.Email,
 			CreatedAt: u.CreatedAt.UTC(),
 		},

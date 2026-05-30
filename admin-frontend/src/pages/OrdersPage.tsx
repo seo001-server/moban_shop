@@ -1,11 +1,11 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ApiError } from '../api/http'
-import { adminApiDownload, adminApiFetch } from '../api/adminHttp'
+import { adminApiFetch } from '../api/adminHttp'
 import type { AdminOrder, PaginatedList } from '../api/types'
 import { Dialog } from '../components/Dialog'
 import { OrderDetailPanel } from '../components/OrderDetailPanel'
 import { Pagination } from '../components/Pagination'
+import { TableLoadingWrap } from '../components/TableLoadingWrap'
 import { useServerPagination } from '../hooks/useServerPagination'
 import { useTabDocumentTitle } from '../tabs/useTabDocumentTitle'
 import { formatDateTime, formatMoney, formatOrderStatus, formatPaidAt, orderStatusClass } from '../utils/format'
@@ -22,7 +22,7 @@ function readFilters(search: string) {
   const params = new URLSearchParams(search)
   return {
     status: params.get('status') ?? '',
-    q: params.get('q') ?? '',
+    order_no: params.get('order_no') ?? '',
     from: params.get('from') ?? '',
     to: params.get('to') ?? '',
   }
@@ -33,15 +33,19 @@ export default function OrdersPage() {
   const nav = useNavigate()
   const filters = useMemo(() => readFilters(location.search), [location.search])
   const [detailOrderId, setDetailOrderId] = useState<number | null>(null)
-  const [exporting, setExporting] = useState(false)
+  const [orderNoDraft, setOrderNoDraft] = useState(filters.order_no)
 
-  const filterKey = `${filters.status}|${filters.q}|${filters.from}|${filters.to}`
+  useEffect(() => {
+    setOrderNoDraft(filters.order_no)
+  }, [filters.order_no])
+
+  const filterKey = `${filters.status}|${filters.order_no}|${filters.from}|${filters.to}`
 
   const buildQuery = useCallback(
     (page: number, pageSize: number) => {
       const q = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
       if (filters.status) q.set('status', filters.status)
-      if (filters.q.trim()) q.set('q', filters.q.trim())
+      if (filters.order_no.trim()) q.set('order_no', filters.order_no.trim())
       if (filters.from) q.set('from', filters.from)
       if (filters.to) q.set('to', filters.to)
       return q
@@ -57,46 +61,32 @@ export default function OrdersPage() {
     [buildQuery],
   )
 
-  const { page, setPage, items, total, totalPages, loading, err, reload } = useServerPagination({
+  const { page, setPage, items, total, totalPages, initialLoading, refreshing, err, reload } = useServerPagination({
     fetchPage,
     resetKey: filterKey,
   })
+
+  useEffect(() => {
+    if (!filters.order_no.trim() || items.length !== 1) return
+    setDetailOrderId(items[0].id)
+  }, [filters.order_no, items])
 
   function patchFilters(patch: Partial<typeof filters>) {
     const next = { ...filters, ...patch }
     const q = new URLSearchParams()
     if (next.status) q.set('status', next.status)
-    if (next.q.trim()) q.set('q', next.q.trim())
+    if (next.order_no.trim()) q.set('order_no', next.order_no.trim())
     if (next.from) q.set('from', next.from)
     if (next.to) q.set('to', next.to)
     const search = q.toString()
     nav({ pathname: '/orders', search: search ? `?${search}` : '' }, { replace: true })
   }
 
-  async function exportCsv() {
-    setExporting(true)
-    try {
-      const q = buildQuery(1, 1)
-      q.delete('page')
-      q.delete('page_size')
-      const blob = await adminApiDownload(`/api/admin/orders/export?${q}`)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (e) {
-      alert(e instanceof ApiError ? e.message : '导出失败')
-    } finally {
-      setExporting(false)
-    }
-  }
-
+  const detailOrder = detailOrderId ? items.find((o) => o.id === detailOrderId) : null
   const dialogOpen = detailOrderId !== null
-  const dialogTitle = detailOrderId ? `订单详情 #${detailOrderId}` : ''
+  const dialogTitle = detailOrder ? `订单详情 ${detailOrder.order_no}` : '订单详情'
 
-  useTabDocumentTitle(detailOrderId ? `#${detailOrderId}` : null, '/orders')
+  useTabDocumentTitle(detailOrder?.order_no ?? null, '/orders')
 
   if (err) {
     return (
@@ -108,7 +98,7 @@ export default function OrdersPage() {
     )
   }
 
-  if (loading && items.length === 0) {
+  if (initialLoading) {
     return <div className="loading-state">加载中…</div>
   }
 
@@ -139,15 +129,27 @@ export default function OrdersPage() {
               </div>
             </div>
             <div className="filter-bar filter-bar--inline">
-              <label className="filter-inline-field">
-                <span className="filter-bar__label">用户邮箱</span>
-                <input
-                  type="search"
-                  value={filters.q}
-                  placeholder="搜索邮箱"
-                  onChange={(e) => patchFilters({ q: e.target.value })}
-                />
-              </label>
+              <form
+                className="filter-search-group"
+                role="search"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  patchFilters({ order_no: orderNoDraft })
+                }}
+              >
+                <label className="filter-inline-field">
+                  <span className="filter-bar__label">订单号</span>
+                  <input
+                    type="search"
+                    value={orderNoDraft}
+                    placeholder="如 MS260529…"
+                    onChange={(e) => setOrderNoDraft(e.target.value)}
+                  />
+                </label>
+                <button type="submit" className="btn small">
+                  搜索
+                </button>
+              </form>
               <label className="filter-inline-field">
                 <span className="filter-bar__label">起始日期</span>
                 <input type="date" value={filters.from} onChange={(e) => patchFilters({ from: e.target.value })} />
@@ -157,9 +159,6 @@ export default function OrdersPage() {
                 <input type="date" value={filters.to} onChange={(e) => patchFilters({ to: e.target.value })} />
               </label>
             </div>
-            <button type="button" className="btn" disabled={exporting} onClick={() => void exportCsv()}>
-              {exporting ? '导出中…' : '导出 CSV'}
-            </button>
           </div>
         </div>
       </div>
@@ -172,11 +171,11 @@ export default function OrdersPage() {
           </div>
         </div>
       ) : (
-        <div className="table-wrap">
+        <TableLoadingWrap refreshing={refreshing}>
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>订单号</th>
                 <th>用户</th>
                 <th>商品</th>
                 <th>件数</th>
@@ -190,7 +189,7 @@ export default function OrdersPage() {
             <tbody>
               {items.map((o) => (
                 <tr key={o.id}>
-                  <td className="muted">{o.id}</td>
+                  <td>{o.order_no}</td>
                   <td>{o.user_email}</td>
                   <td>{o.items_summary || '—'}</td>
                   <td className="muted">{o.item_count}</td>
@@ -210,7 +209,7 @@ export default function OrdersPage() {
             </tbody>
           </table>
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
+        </TableLoadingWrap>
       )}
 
       <Dialog open={dialogOpen} title={dialogTitle} onClose={() => setDetailOrderId(null)}>

@@ -29,6 +29,7 @@ type Product struct {
 	PreviewUrl  sql.NullString `json:"preview_url"`
 	SortOrder   int32          `json:"sort_order"`
 	Recommended bool           `json:"recommended"`
+	Visible     bool           `json:"visible"`
 	Downloads   int64          `json:"downloads"`
 	Score       float64        `json:"score"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -46,6 +47,7 @@ type Business struct {
 
 type User struct {
 	ID           uint64    `json:"id"`
+	UserNo       string    `json:"user_no"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"password_hash"`
 	CreatedAt    time.Time `json:"created_at"`

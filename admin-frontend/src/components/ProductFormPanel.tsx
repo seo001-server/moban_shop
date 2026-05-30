@@ -30,6 +30,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
   const [previewUrl, setPreviewUrl] = useState('')
   const [sortOrder, setSortOrder] = useState(0)
   const [recommended, setRecommended] = useState(false)
+  const [visible, setVisible] = useState(true)
   const [downloads, setDownloads] = useState(0)
   const [score, setScore] = useState(0)
   const [category, setCategory] = useState('film')
@@ -50,6 +51,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
       setPreviewUrl('')
       setSortOrder(0)
       setRecommended(false)
+      setVisible(true)
       setDownloads(0)
       setScore(0)
       setCategory('film')
@@ -76,6 +78,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
         setPreviewUrl(p.preview_url ?? '')
         setSortOrder(p.sort_order)
         setRecommended(!!p.recommended)
+        setVisible(p.visible !== false)
         setDownloads(Math.max(0, Math.trunc(Number(p.downloads)) || 0))
         setScore(Number.isFinite(p.score) ? p.score : 0)
       } catch (e) {
@@ -109,6 +112,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
       preview_url: previewUrl.trim() === '' ? null : previewUrl,
       sort_order: sortOrder,
       recommended,
+      visible,
       downloads: Math.max(0, Math.trunc(downloads)),
       score: Number.isFinite(score) ? score : 0,
     }
@@ -285,6 +289,21 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
             <span className="form-metrics-row__label">快捷填充</span>
             <button type="button" className="btn" onClick={randomizeMetrics}>
               随机生成
+            </button>
+          </div>
+          <div className="toggle-field">
+            <span className="form-metrics-row__label">前台展示</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={visible}
+              className={`toggle-switch${visible ? ' is-on' : ''}`}
+              onClick={() => setVisible((v) => !v)}
+            >
+              <span className="toggle-switch__track">
+                <span className="toggle-switch__thumb" />
+              </span>
+              <span className="toggle-switch__text">{visible ? '已展示' : '已隐藏'}</span>
             </button>
           </div>
           <div className="toggle-field">

@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/http'
 import type { BusinessItem } from '../api/types'
-import { getBusinessSection } from '../lib/businessSections'
+import { useBusinessSections } from '../hooks/useBusinessSections'
 
 type Props = {
   slug: string
 }
 
 export default function BusinessSectionPage({ slug }: Props) {
-  const section = getBusinessSection(slug)
+  const { getSection } = useBusinessSections()
+  const section = getSection(slug)
   const [items, setItems] = useState<BusinessItem[] | null>(null)
   const [loadErr, setLoadErr] = useState<string | null>(null)
 

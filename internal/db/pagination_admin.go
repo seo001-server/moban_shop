@@ -5,7 +5,7 @@ import (
 )
 
 const adminListProductsPaged = `-- name: AdminListProductsPaged :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 ORDER BY sort_order ASC, id ASC
 LIMIT ? OFFSET ?
@@ -20,22 +20,7 @@ func (q *Queries) AdminListProductsPaged(ctx context.Context, limit, offset int3
 	items := []Product{}
 	for rows.Next() {
 		var i Product
-		if err := rows.Scan(
-			&i.ID,
-			&i.Slug,
-			&i.Category,
-			&i.Title,
-			&i.Description,
-			&i.PriceMinor,
-			&i.Currency,
-			&i.ImageUrl,
-			&i.PreviewUrl,
-			&i.SortOrder,
-			&i.Recommended,
-			&i.Downloads,
-			&i.Score,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(scanProductFields(&i)...); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -44,7 +29,7 @@ func (q *Queries) AdminListProductsPaged(ctx context.Context, limit, offset int3
 }
 
 const adminListUsersPaged = `-- name: AdminListUsersPaged :many
-SELECT id, email, created_at
+SELECT id, user_no, email, created_at
 FROM users
 ORDER BY id DESC
 LIMIT ? OFFSET ?
@@ -59,7 +44,7 @@ func (q *Queries) AdminListUsersPaged(ctx context.Context, limit, offset int32) 
 	items := []AdminListUsersRow{}
 	for rows.Next() {
 		var i AdminListUsersRow
-		if err := rows.Scan(&i.ID, &i.Email, &i.CreatedAt); err != nil {
+		if err := rows.Scan(&i.ID, &i.UserNo, &i.Email, &i.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -70,6 +55,7 @@ func (q *Queries) AdminListUsersPaged(ctx context.Context, limit, offset int32) 
 const adminListOrdersPaged = `-- name: AdminListOrdersPaged :many
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   u.email AS user_email,
   o.status,
@@ -87,7 +73,7 @@ FROM orders o
 INNER JOIN users u ON u.id = o.user_id
 LEFT JOIN order_items oi ON oi.order_id = o.id
 LEFT JOIN products p ON p.id = oi.product_id
-GROUP BY o.id, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
+GROUP BY o.id, o.order_no, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
 ORDER BY o.created_at DESC, o.id DESC
 LIMIT ? OFFSET ?
 `
@@ -103,6 +89,7 @@ func (q *Queries) AdminListOrdersPaged(ctx context.Context, limit, offset int32)
 		var i AdminListOrdersRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.OrderNo,
 			&i.UserID,
 			&i.UserEmail,
 			&i.Status,
@@ -134,6 +121,7 @@ func (q *Queries) AdminCountOrdersByUser(ctx context.Context, userID uint64) (in
 const adminListOrdersByUserPaged = `-- name: AdminListOrdersByUserPaged :many
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   u.email AS user_email,
   o.status,
@@ -152,7 +140,7 @@ INNER JOIN users u ON u.id = o.user_id
 LEFT JOIN order_items oi ON oi.order_id = o.id
 LEFT JOIN products p ON p.id = oi.product_id
 WHERE o.user_id = ?
-GROUP BY o.id, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
+GROUP BY o.id, o.order_no, o.user_id, u.email, o.status, o.total_amount_minor, o.currency, o.created_at, o.updated_at
 ORDER BY o.created_at DESC, o.id DESC
 LIMIT ? OFFSET ?
 `
@@ -168,6 +156,7 @@ func (q *Queries) AdminListOrdersByUserPaged(ctx context.Context, userID uint64,
 		var i AdminListOrdersRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.OrderNo,
 			&i.UserID,
 			&i.UserEmail,
 			&i.Status,

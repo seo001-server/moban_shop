@@ -88,14 +88,18 @@ export function useServerPagination<T>({
     [result?.total_pages],
   )
 
+  const items = result?.items ?? []
+
   return {
     page,
     setPage,
-    items: result?.items ?? [],
+    items,
     total: result?.total ?? 0,
     totalPages: result?.total_pages ?? 1,
     pageSize,
     loading,
+    refreshing: loading && items.length > 0,
+    initialLoading: loading && items.length === 0,
     err,
     reload,
   }

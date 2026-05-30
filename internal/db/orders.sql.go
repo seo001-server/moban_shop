@@ -10,11 +10,12 @@ import (
 )
 
 const createOrder = `-- name: CreateOrder :execresult
-INSERT INTO orders (user_id, status, total_amount_minor, currency)
-VALUES (?, ?, ?, ?)
+INSERT INTO orders (order_no, user_id, status, total_amount_minor, currency)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type CreateOrderParams struct {
+	OrderNo          string
 	UserID           uint64
 	Status           string
 	TotalAmountMinor int64
@@ -23,6 +24,7 @@ type CreateOrderParams struct {
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, createOrder,
+		arg.OrderNo,
 		arg.UserID,
 		arg.Status,
 		arg.TotalAmountMinor,
@@ -65,6 +67,7 @@ func (q *Queries) CountOrdersByUser(ctx context.Context, userID uint64) (int64, 
 const listOrdersByUserPaged = `-- name: ListOrdersByUserPaged :many
 SELECT
   o.id,
+  o.order_no,
   o.status,
   o.total_amount_minor,
   o.currency,
@@ -79,13 +82,14 @@ FROM orders o
 LEFT JOIN order_items oi ON oi.order_id = o.id
 LEFT JOIN products p ON p.id = oi.product_id
 WHERE o.user_id = ?
-GROUP BY o.id, o.status, o.total_amount_minor, o.currency, o.created_at
+GROUP BY o.id, o.order_no, o.status, o.total_amount_minor, o.currency, o.created_at
 ORDER BY o.created_at DESC, o.id DESC
 LIMIT ? OFFSET ?
 `
 
 type ListOrdersByUserPagedRow struct {
 	ID               uint64         `json:"id"`
+	OrderNo          string         `json:"order_no"`
 	Status           string         `json:"status"`
 	TotalAmountMinor int64          `json:"total_amount_minor"`
 	Currency         string         `json:"currency"`
@@ -105,6 +109,7 @@ func (q *Queries) ListOrdersByUserPaged(ctx context.Context, userID uint64, limi
 		var i ListOrdersByUserPagedRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.OrderNo,
 			&i.Status,
 			&i.TotalAmountMinor,
 			&i.Currency,
@@ -122,6 +127,7 @@ func (q *Queries) ListOrdersByUserPaged(ctx context.Context, userID uint64, limi
 const getOrderHeaderForUser = `-- name: GetOrderHeaderForUser :one
 SELECT
   o.id,
+  o.order_no,
   o.user_id,
   o.status,
   o.total_amount_minor,
@@ -134,6 +140,7 @@ LIMIT 1
 
 type GetOrderHeaderForUserRow struct {
 	ID               uint64    `json:"id"`
+	OrderNo          string    `json:"order_no"`
 	UserID           uint64    `json:"user_id"`
 	Status           string    `json:"status"`
 	TotalAmountMinor int64     `json:"total_amount_minor"`
@@ -146,6 +153,7 @@ func (q *Queries) GetOrderHeaderForUser(ctx context.Context, id uint64, userID u
 	var i GetOrderHeaderForUserRow
 	err := row.Scan(
 		&i.ID,
+		&i.OrderNo,
 		&i.UserID,
 		&i.Status,
 		&i.TotalAmountMinor,
@@ -160,7 +168,10 @@ SELECT
   oi.id,
   oi.order_id,
   oi.product_id,
+  p.slug AS product_slug,
   p.title AS product_title,
+  p.preview_url AS product_preview_url,
+  p.image_url AS product_image_url,
   oi.quantity,
   oi.unit_price_minor
 FROM order_items oi
@@ -170,12 +181,15 @@ ORDER BY oi.id ASC
 `
 
 type ListOrderItemsByOrderIDRow struct {
-	ID             uint64 `json:"id"`
-	OrderID        uint64 `json:"order_id"`
-	ProductID      uint64 `json:"product_id"`
-	ProductTitle   string `json:"product_title"`
-	Quantity       uint32 `json:"quantity"`
-	UnitPriceMinor int64  `json:"unit_price_minor"`
+	ID                 uint64         `json:"id"`
+	OrderID            uint64         `json:"order_id"`
+	ProductID          uint64         `json:"product_id"`
+	ProductSlug        string         `json:"product_slug"`
+	ProductTitle       string         `json:"product_title"`
+	ProductPreviewUrl  sql.NullString `json:"product_preview_url"`
+	ProductImageUrl    sql.NullString `json:"product_image_url"`
+	Quantity           uint32         `json:"quantity"`
+	UnitPriceMinor     int64          `json:"unit_price_minor"`
 }
 
 func (q *Queries) ListOrderItemsByOrderID(ctx context.Context, orderID uint64) ([]ListOrderItemsByOrderIDRow, error) {
@@ -191,7 +205,10 @@ func (q *Queries) ListOrderItemsByOrderID(ctx context.Context, orderID uint64) (
 			&i.ID,
 			&i.OrderID,
 			&i.ProductID,
+			&i.ProductSlug,
 			&i.ProductTitle,
+			&i.ProductPreviewUrl,
+			&i.ProductImageUrl,
 			&i.Quantity,
 			&i.UnitPriceMinor,
 		); err != nil {

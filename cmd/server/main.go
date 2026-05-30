@@ -19,7 +19,9 @@ import (
 	"moban_shop/internal/admin"
 	"moban_shop/internal/apiresp"
 	"moban_shop/internal/auth"
+	"moban_shop/internal/cart"
 	"moban_shop/internal/catalog"
+	"moban_shop/internal/cms"
 	"moban_shop/internal/config"
 	"moban_shop/internal/orders"
 	dbpkg "moban_shop/internal/database"
@@ -48,17 +50,23 @@ func main() {
 	}()
 
 	q := db.New(sqlDB)
+	cms.BootstrapDocs(context.Background(), q, logger)
 	catHandler := catalog.New(q)
 	authHandler := auth.NewHandler(q, []byte(cfg.JWTSecret), cfg.JWTIssuer, cfg.JWTAccessTTL)
 	adminAuth := admin.NewAuthHandler(q, []byte(cfg.JWTAdminSecret), cfg.JWTAdminIssuer, cfg.JWTAdminAccessTTL)
 	adminProducts := admin.NewProductsHandler(q)
 	adminBusiness := admin.NewBusinessHandler(q)
+	adminBusinessSections := admin.NewBusinessSectionsHandler(q)
+	adminSiteContent := admin.NewSiteContentHandler(q)
+	adminDocs := admin.NewDocsHandler(q)
 	adminDashboard := admin.NewDashboardHandler(q)
 	adminUsers := admin.NewUsersHandler(q)
 	adminOrders := admin.NewOrdersHandler(q)
+	adminAuditLogs := admin.NewAuditLogsHandler(q)
 	uploadDir := resolveUploadDir()
 	adminUploads := admin.NewUploadsHandler(uploadDir)
 	ordersHandler := orders.NewHandler(q, sqlDB)
+	cartHandler := cart.NewHandler(q)
 
 	e := echo.New()
 	e.HideBanner = true
@@ -116,7 +124,10 @@ func main() {
 	api := e.Group("/api")
 	api.GET("/products", catHandler.ListProducts)
 	api.GET("/products/:id", catHandler.GetProductByID)
+	api.GET("/business-sections", catHandler.ListBusinessSections)
 	api.GET("/business/:slug", catHandler.ListBusinessBySection)
+	api.GET("/homepage", catHandler.GetHomepage)
+	api.GET("/docs/:slug", catHandler.GetDoc)
 	api.POST("/auth/register", authHandler.Register)
 	api.POST("/auth/login", authHandler.Login)
 	api.GET("/me", authHandler.Me, auth.RequireAuth([]byte(cfg.JWTSecret), cfg.JWTIssuer))
@@ -126,6 +137,12 @@ func main() {
 	ordersAuthed.GET("/orders", ordersHandler.ListMyOrders)
 	ordersAuthed.GET("/orders/:id", ordersHandler.GetMyOrder)
 	ordersAuthed.POST("/orders/:id/pay", ordersHandler.PayOrder)
+	ordersAuthed.GET("/cart", cartHandler.List)
+	ordersAuthed.POST("/cart/items", cartHandler.AddItem)
+	ordersAuthed.PUT("/cart/items/:product_id", cartHandler.SetItemQty)
+	ordersAuthed.DELETE("/cart/items/:product_id", cartHandler.DeleteItem)
+	ordersAuthed.DELETE("/cart", cartHandler.Clear)
+	ordersAuthed.POST("/cart/merge", cartHandler.Merge)
 
 	adminGrp := api.Group("/admin")
 	adminGrp.POST("/auth/login", adminAuth.Login)
@@ -140,11 +157,13 @@ func main() {
 	adminAuthed.GET("/users/:id", adminUsers.GetUser)
 	adminAuthed.GET("/users/:id/orders", adminUsers.ListUserOrders)
 	adminAuthed.GET("/orders", adminOrders.ListOrders)
-	adminAuthed.GET("/orders/export", adminOrders.ExportOrders)
 	adminAuthed.GET("/orders/:id", adminOrders.GetOrder)
 	adminAuthed.PATCH("/orders/:id/status", adminOrders.UpdateOrderStatus)
 	adminAuthed.GET("/products", adminProducts.ListProducts)
 	adminAuthed.POST("/products", adminProducts.CreateProduct)
+	adminAuthed.POST("/products/batch-delete", adminProducts.BatchDeleteProducts)
+	adminAuthed.PATCH("/products/:id/visible", adminProducts.SetProductVisible)
+	adminAuthed.POST("/products/batch-recommended", adminProducts.BatchSetRecommended)
 	adminAuthed.GET("/products/:id", adminProducts.GetProduct)
 	adminAuthed.POST("/products/:id/duplicate", adminProducts.DuplicateProduct)
 	adminAuthed.PUT("/products/:id", adminProducts.UpdateProduct)
@@ -154,6 +173,16 @@ func main() {
 	adminAuthed.GET("/business/:id", adminBusiness.GetBusiness)
 	adminAuthed.PUT("/business/:id", adminBusiness.UpdateBusiness)
 	adminAuthed.DELETE("/business/:id", adminBusiness.DeleteBusiness)
+	adminAuthed.GET("/business-sections", adminBusinessSections.List)
+	adminAuthed.GET("/business-sections/:slug", adminBusinessSections.Get)
+	adminAuthed.PUT("/business-sections/:slug", adminBusinessSections.Update)
+	adminAuthed.GET("/site-content/homepage", adminSiteContent.GetHomepage)
+	adminAuthed.PUT("/site-content/homepage", adminSiteContent.UpdateHomepage)
+	adminAuthed.PATCH("/site-content/homepage", adminSiteContent.PatchHomepage)
+	adminAuthed.GET("/docs", adminDocs.List)
+	adminAuthed.GET("/docs/:slug", adminDocs.Get)
+	adminAuthed.PUT("/docs/:slug", adminDocs.Update)
+	adminAuthed.GET("/audit-logs", adminAuditLogs.List)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

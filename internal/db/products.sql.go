@@ -10,37 +10,23 @@ import (
 )
 
 const getProductByID = `-- name: GetProductByID :one
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
-WHERE id = ?
+WHERE id = ? AND visible = 1
 LIMIT 1
 `
 
 func (q *Queries) GetProductByID(ctx context.Context, id uint64) (Product, error) {
 	row := q.db.QueryRowContext(ctx, getProductByID, id)
 	var i Product
-	err := row.Scan(
-		&i.ID,
-		&i.Slug,
-		&i.Category,
-		&i.Title,
-		&i.Description,
-		&i.PriceMinor,
-		&i.Currency,
-		&i.ImageUrl,
-		&i.PreviewUrl,
-		&i.SortOrder,
-		&i.Recommended,
-		&i.Downloads,
-		&i.Score,
-		&i.CreatedAt,
-	)
+	err := row.Scan(scanProductFields(&i)...)
 	return i, err
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
+WHERE visible = 1
 ORDER BY sort_order ASC, id ASC
 `
 
@@ -53,22 +39,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 	items := []Product{}
 	for rows.Next() {
 		var i Product
-		if err := rows.Scan(
-			&i.ID,
-			&i.Slug,
-			&i.Category,
-			&i.Title,
-			&i.Description,
-			&i.PriceMinor,
-			&i.Currency,
-			&i.ImageUrl,
-			&i.PreviewUrl,
-			&i.SortOrder,
-			&i.Recommended,
-			&i.Downloads,
-			&i.Score,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(scanProductFields(&i)...); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -83,9 +54,9 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const listProductsByCategory = `-- name: ListProductsByCategory :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
-WHERE category = ?
+WHERE category = ? AND visible = 1
 ORDER BY sort_order ASC, id ASC
 `
 
@@ -98,22 +69,7 @@ func (q *Queries) ListProductsByCategory(ctx context.Context, category string) (
 	items := []Product{}
 	for rows.Next() {
 		var i Product
-		if err := rows.Scan(
-			&i.ID,
-			&i.Slug,
-			&i.Category,
-			&i.Title,
-			&i.Description,
-			&i.PriceMinor,
-			&i.Currency,
-			&i.ImageUrl,
-			&i.PreviewUrl,
-			&i.SortOrder,
-			&i.Recommended,
-			&i.Downloads,
-			&i.Score,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(scanProductFields(&i)...); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -3,6 +3,7 @@ package admin
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -34,6 +35,7 @@ type productBody struct {
 	PreviewURL   *string  `json:"preview_url"`
 	SortOrder    *int32   `json:"sort_order"`
 	Recommended  *bool    `json:"recommended"`
+	Visible      *bool    `json:"visible"`
 	Downloads    *int64   `json:"downloads"`
 	Score        *float64 `json:"score"`
 }
@@ -50,6 +52,7 @@ type productJSON struct {
 	PreviewURL   *string `json:"preview_url,omitempty"`
 	SortOrder    int32   `json:"sort_order"`
 	Recommended  bool    `json:"recommended"`
+	Visible      bool    `json:"visible"`
 	Downloads    int64   `json:"downloads"`
 	Score        float64 `json:"score"`
 	CreatedAt    string  `json:"created_at"`
@@ -65,6 +68,7 @@ func rowToJSON(p db.Product) productJSON {
 		Currency:    p.Currency,
 		SortOrder:   p.SortOrder,
 		Recommended: p.Recommended,
+		Visible:     p.Visible,
 		Downloads:   p.Downloads,
 		Score:       p.Score,
 		CreatedAt:   p.CreatedAt.UTC().Format(time.RFC3339Nano),
@@ -168,6 +172,13 @@ func recommendedFromPtr(p *bool) bool {
 	return *p
 }
 
+func visibleFromPtr(p *bool) bool {
+	if p == nil {
+		return true
+	}
+	return *p
+}
+
 func downloadsFromPtr(p *int64) int64 {
 	if p == nil {
 		return 0
@@ -242,6 +253,7 @@ func (h *ProductsHandler) CreateProduct(c echo.Context) error {
 		PreviewUrl:   nullableString(body.PreviewURL),
 		SortOrder:    sortOrderPtr(body.SortOrder),
 		Recommended:  recommendedFromPtr(body.Recommended),
+		Visible:      visibleFromPtr(body.Visible),
 		Downloads:    downloadsFromPtr(body.Downloads),
 		Score:        scoreFromPtr(body.Score),
 	}
@@ -260,6 +272,7 @@ func (h *ProductsHandler) CreateProduct(c echo.Context) error {
 		if gerr != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "创建后查询商品失败")
 		}
+		auditFromContext(c, h.Q, AuditActionProductCreate, AuditResourceProduct, auditResourceIDUint(p2.ID), p2.Title)
 		return apiresp.OK(c, rowToJSON(p2))
 	}
 
@@ -267,6 +280,7 @@ func (h *ProductsHandler) CreateProduct(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
 	}
+	auditFromContext(c, h.Q, AuditActionProductCreate, AuditResourceProduct, auditResourceIDUint(p3.ID), p3.Title)
 	return apiresp.OK(c, rowToJSON(p3))
 }
 
@@ -296,6 +310,7 @@ func (h *ProductsHandler) UpdateProduct(c echo.Context) error {
 		PreviewUrl:  nullableString(body.PreviewURL),
 		SortOrder:   sortOrderPtr(body.SortOrder),
 		Recommended: recommendedFromPtr(body.Recommended),
+		Visible:     visibleFromPtr(body.Visible),
 		Downloads:   downloadsFromPtr(body.Downloads),
 		Score:       scoreFromPtr(body.Score),
 		ID:          id,
@@ -315,6 +330,7 @@ func (h *ProductsHandler) UpdateProduct(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
 	}
+	auditFromContext(c, h.Q, AuditActionProductUpdate, AuditResourceProduct, auditResourceIDUint(id), p.Title)
 	return apiresp.OK(c, rowToJSON(p))
 }
 
@@ -359,6 +375,7 @@ func (h *ProductsHandler) DuplicateProduct(c echo.Context) error {
 		PreviewUrl:  src.PreviewUrl,
 		SortOrder:   src.SortOrder,
 		Recommended: false,
+		Visible:     false,
 		Downloads:   src.Downloads,
 		Score:       src.Score,
 	}
@@ -376,12 +393,14 @@ func (h *ProductsHandler) DuplicateProduct(c echo.Context) error {
 		if gerr != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "复制后查询商品失败")
 		}
+		auditFromContext(c, h.Q, AuditActionProductDuplicate, AuditResourceProduct, auditResourceIDUint(p2.ID), fmt.Sprintf("#%d → #%d", id, p2.ID))
 		return apiresp.OK(c, rowToJSON(p2))
 	}
 	p3, err := h.Q.AdminGetProductByID(ctx, uint64(insertID))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
 	}
+	auditFromContext(c, h.Q, AuditActionProductDuplicate, AuditResourceProduct, auditResourceIDUint(p3.ID), fmt.Sprintf("#%d → #%d", id, p3.ID))
 	return apiresp.OK(c, rowToJSON(p3))
 }
 
@@ -390,8 +409,10 @@ func (h *ProductsHandler) DeleteProduct(c echo.Context) error {
 	if herr != nil {
 		return herr
 	}
-	ctx := c.Request().Context()
-	if err := h.Q.AdminDeleteProduct(ctx, id); err != nil {
+	if err := h.deleteProductByID(c, id); err != nil {
+		if he, ok := err.(*echo.HTTPError); ok {
+			return he
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "删除商品失败")
 	}
 	return apiresp.OK(c, nil)

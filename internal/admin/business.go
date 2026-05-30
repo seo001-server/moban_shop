@@ -159,6 +159,7 @@ func (h *BusinessHandler) CreateBusiness(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "查询业务展示失败")
 	}
+	auditFromContext(c, h.Q, AuditActionBusinessCreate, AuditResourceBusiness, auditResourceIDUint(b.ID), b.Title)
 	return apiresp.OK(c, businessRowToJSON(b))
 }
 
@@ -193,6 +194,7 @@ func (h *BusinessHandler) UpdateBusiness(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "查询业务展示失败")
 	}
+	auditFromContext(c, h.Q, AuditActionBusinessUpdate, AuditResourceBusiness, auditResourceIDUint(id), b.Title)
 	return apiresp.OK(c, businessRowToJSON(b))
 }
 
@@ -202,9 +204,18 @@ func (h *BusinessHandler) DeleteBusiness(c echo.Context) error {
 		return herr
 	}
 	ctx := c.Request().Context()
+	item, err := h.Q.AdminGetBusinessByID(ctx, id)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return echo.NewHTTPError(http.StatusInternalServerError, "获取业务展示失败")
+	}
+	detail := ""
+	if err == nil {
+		detail = item.Title
+	}
 	if err := h.Q.AdminDeleteBusiness(ctx, id); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "删除业务展示失败")
 	}
+	auditFromContext(c, h.Q, AuditActionBusinessDelete, AuditResourceBusiness, auditResourceIDUint(id), detail)
 	return apiresp.OK(c, nil)
 }
 

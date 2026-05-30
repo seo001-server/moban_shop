@@ -53,3 +53,17 @@ WHERE o.status = 'paid'
 GROUP BY p.id, p.title
 ORDER BY sales_qty DESC, p.id ASC
 LIMIT 5;
+
+-- name: AdminTopProductSalesSince :many
+SELECT
+  p.id AS product_id,
+  p.title AS product_title,
+  COALESCE(SUM(oi.quantity), 0) AS sales_qty
+FROM order_items oi
+JOIN products p ON p.id = oi.product_id
+JOIN orders o ON o.id = oi.order_id
+WHERE o.status = 'paid'
+  AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+GROUP BY p.id, p.title
+ORDER BY sales_qty DESC, p.id ASC
+LIMIT 5;

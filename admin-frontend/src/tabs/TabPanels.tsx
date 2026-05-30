@@ -1,6 +1,10 @@
 import { Route, Routes } from 'react-router-dom'
+import AuditLogsPage from '../pages/AuditLogsPage'
 import BusinessPage from '../pages/BusinessPage'
+import BusinessSectionsPage from '../pages/BusinessSectionsPage'
 import DashboardPage from '../pages/DashboardPage'
+import DocsEditorPage from '../pages/DocsEditorPage'
+import HomepageSettingsPage from '../pages/HomepageSettingsPage'
 import OrderDetailPage from '../pages/OrderDetailPage'
 import OrdersPage from '../pages/OrdersPage'
 import ProductFormPage from '../pages/ProductFormPage'
@@ -32,8 +36,12 @@ export function TabPanels() {
                 <Route path="/templates/new" element={<ProductFormPage />} />
                 <Route path="/templates" element={<ProductsPage />} />
                 <Route path="/business" element={<BusinessPage />} />
+                <Route path="/cms/sections" element={<BusinessSectionsPage />} />
+                <Route path="/cms/homepage" element={<HomepageSettingsPage />} />
+                <Route path="/cms/docs/:slug" element={<DocsEditorPage />} />
                 <Route path="/orders/:id" element={<OrderDetailPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/audit-logs" element={<AuditLogsPage />} />
               </Routes>
             </div>
           </TabPageProvider>

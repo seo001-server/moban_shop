@@ -1,15 +1,11 @@
 package admin
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/csv"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -46,53 +42,6 @@ func (h *OrdersHandler) ListOrders(c echo.Context) error {
 		out = append(out, orderRowToSummary(row))
 	}
 	return writePaginatedJSON(c, out, p, total)
-}
-
-// ExportOrders streams a CSV of filtered orders (max 5000 rows).
-func (h *OrdersHandler) ExportOrders(c echo.Context) error {
-	ctx := c.Request().Context()
-	filters, err := parseOrdersFilters(c)
-	if err != nil {
-		return err
-	}
-	rows, err := h.Q.AdminListOrdersForExport(ctx, filters)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "导出订单失败")
-	}
-
-	var buf bytes.Buffer
-	buf.WriteString("\xEF\xBB\xBF") // UTF-8 BOM for Excel
-	w := csv.NewWriter(&buf)
-	if err := w.Write([]string{"订单ID", "用户邮箱", "状态", "金额(最小单位)", "货币", "商品摘要", "下单时间", "更新时间"}); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "生成 CSV 失败")
-	}
-	for _, row := range rows {
-		summary := ""
-		if row.ItemsSummary.Valid {
-			summary = row.ItemsSummary.String
-		}
-		if err := w.Write([]string{
-			strconv.FormatUint(row.ID, 10),
-			row.UserEmail,
-			row.Status,
-			strconv.FormatInt(row.TotalAmountMinor, 10),
-			row.Currency,
-			summary,
-			row.CreatedAt.UTC().Format(time.RFC3339),
-			row.UpdatedAt.UTC().Format(time.RFC3339),
-		}); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "生成 CSV 失败")
-		}
-	}
-	w.Flush()
-	if err := w.Error(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "生成 CSV 失败")
-	}
-
-	filename := fmt.Sprintf("orders-%s.csv", time.Now().UTC().Format("20060102-150405"))
-	c.Response().Header().Set(echo.HeaderContentType, "text/csv; charset=utf-8")
-	c.Response().Header().Set(echo.HeaderContentDisposition, fmt.Sprintf(`attachment; filename="%s"`, filename))
-	return c.Blob(http.StatusOK, "text/csv; charset=utf-8", buf.Bytes())
 }
 
 // GetOrder returns one order with all line items.
@@ -161,6 +110,10 @@ func (h *OrdersHandler) UpdateOrderStatus(c echo.Context) error {
 	}
 	if n == 0 {
 		return echo.NewHTTPError(http.StatusConflict, "订单状态已变更，请刷新后重试")
+	}
+
+	if adminID, ok := AdminUserID(c); ok {
+		WriteAuditLog(ctx, h.Q, adminID, AuditActionOrderUpdateStatus, AuditResourceOrder, auditResourceIDUint(id), ClientIP(c), auditDetailStatusChange(header.Status, newStatus))
 	}
 
 	header.Status = newStatus

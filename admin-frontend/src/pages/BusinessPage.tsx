@@ -5,13 +5,19 @@ import type { BusinessItem, PaginatedList } from '../api/types'
 import { BusinessFormPanel } from '../components/BusinessFormPanel'
 import { Dialog } from '../components/Dialog'
 import { Pagination } from '../components/Pagination'
+import { TableLoadingWrap } from '../components/TableLoadingWrap'
+import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/Toast'
 import { useServerPagination } from '../hooks/useServerPagination'
-import { BUSINESS_SECTION_OPTIONS, businessSectionLabel } from '../lib/businessSections'
+import { useAdminBusinessSections } from '../hooks/useAdminBusinessSections'
 import { useTabDocumentTitle } from '../tabs/useTabDocumentTitle'
 
 type FormTarget = { mode: 'new' } | { mode: 'edit'; id: number }
 
 export default function BusinessPage() {
+  const { options: sectionOptions, labelFor: businessSectionLabel } = useAdminBusinessSections()
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const { showToast } = useToast()
   const [sectionFilter, setSectionFilter] = useState('')
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null)
 
@@ -27,7 +33,7 @@ export default function BusinessPage() {
     [sectionFilter],
   )
 
-  const { page, setPage, items, total, totalPages, loading, err, reload } = useServerPagination({
+  const { page, setPage, items, total, totalPages, initialLoading, refreshing, err, reload } = useServerPagination({
     fetchPage,
     resetKey: sectionFilter,
   })
@@ -38,14 +44,19 @@ export default function BusinessPage() {
   }
 
   async function remove(id: number) {
-    if (!confirm('确认删除该业务产品？')) return
+    const ok = await confirm({
+      title: '删除业务产品',
+      message: '确认删除该业务产品？此操作不可撤销。',
+      confirmLabel: '删除',
+      danger: true,
+    })
+    if (!ok) return
     try {
       await adminApiFetch(`/api/admin/business/${id}`, { method: 'DELETE' })
+      showToast('业务产品已删除', 'success')
       await reload()
     } catch (e) {
-      if (e instanceof ApiError) {
-        alert(e.message)
-      }
+      showToast(e instanceof ApiError ? e.message : '删除失败', 'error')
     }
   }
 
@@ -72,12 +83,13 @@ export default function BusinessPage() {
     )
   }
 
-  if (loading && items.length === 0) {
+  if (initialLoading) {
     return <div className="loading-state">加载中…</div>
   }
 
   return (
     <div className="page">
+      {confirmDialog}
       <div className="page-header page-header--toolbar">
         <div className="page-header__text">
           <div className="page-header__title-row">
@@ -97,7 +109,7 @@ export default function BusinessPage() {
                   >
                     全部
                   </button>
-                  {BUSINESS_SECTION_OPTIONS.map((o) => (
+                  {sectionOptions.map((o) => (
                     <button
                       key={o.value}
                       type="button"
@@ -129,7 +141,7 @@ export default function BusinessPage() {
           </div>
         </div>
       ) : (
-        <div className="table-wrap">
+        <TableLoadingWrap refreshing={refreshing}>
           <table className="admin-table admin-table--business">
             <colgroup>
               <col style={{ width: '6%' }} />
@@ -180,7 +192,7 @@ export default function BusinessPage() {
             </tbody>
           </table>
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
+        </TableLoadingWrap>
       )}
 
       <Dialog open={dialogOpen} title={dialogTitle} onClose={() => setFormTarget(null)}>

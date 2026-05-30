@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DailyCount } from '../api/types'
+import { DashboardDaysRange, type DashboardDays } from './DashboardDaysRange'
 
 type Props = {
   title: string
   series: DailyCount[]
-  days: number
+  days: DashboardDays
+  onDaysChange: (days: DashboardDays) => void
   color: string
   colorMuted: string
 }
@@ -32,6 +34,7 @@ export default function DashboardDailyChart({
   title,
   series,
   days,
+  onDaysChange,
   color,
   colorMuted,
 }: Props) {
@@ -87,8 +90,11 @@ export default function DashboardDailyChart({
   return (
     <div className="dashboard-panel">
       <div className="dashboard-panel__head">
-        <h3 className="dashboard-panel__title">{title}</h3>
-        <p className="dashboard-panel__meta">近 {days} 日趋势</p>
+        <div className="dashboard-panel__head-row">
+          <h3 className="dashboard-panel__title">{title}</h3>
+          <p className="dashboard-panel__meta">近 {days} 日趋势</p>
+        </div>
+        <DashboardDaysRange value={days} onChange={onDaysChange} label={`${title}日期范围`} />
       </div>
       <div className="dashboard-panel__chart-wrap" ref={wrapRef}>
         <svg
