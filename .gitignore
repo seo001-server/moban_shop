@@ -1,0 +1,11 @@
+/bin/
+/tmp/
+build-errors.log
+dist/
+*.exe
+.env
+.env.local
+frontend/dist
+frontend/node_modules
+admin-frontend/dist
+admin-frontend/node_modules

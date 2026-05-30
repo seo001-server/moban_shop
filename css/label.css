@@ -1,0 +1,28 @@
+.section-container {
+    padding: 120px 0 40px 0;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.section-title {
+    margin-bottom: 30px;
+}
+
+.section-content {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 36px 28px 28px 28px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-date {
+    display: flex;
+    justify-content: space-between;
+}
+
+.section-ul {
+    margin-top: 3rem;
+    list-style: none;
+}

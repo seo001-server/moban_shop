@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的订单 - {$maccms.site_name}</title>
+    <meta name="keywords" content="{$maccms.site_keywords}" />
+    <meta name="description" content="{$maccms.site_description}" />
+    <link rel="shortcut icon" href="{$maccms.path_tpl}images/ico/favicon.ico" type="image/x-icon">
+    {include file="public/include"}
+    <link rel="stylesheet" href="{$maccms.path_tpl}css/user.css">
+    <style>
+        .none-list {
+            text-align: center;
+            color: var(--text-light);
+            padding: 60px 0;
+        }
+
+        .order-table {
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .order-table tr:first-child {
+            background: rgba(0, 113, 227, 0.08);
+        }
+
+        .order-table th,
+        .order-table td {
+            padding: 16px;
+        }
+
+        .unpay {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .payed {
+            color: #e67e22;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    {include file="user/head"}
+
+    <div class="user-center-container">
+        {include file="user/menu"}
+
+        <!-- 右侧主内容区 -->
+        <div class="user-center-main">
+            <div class="main-header">
+                <h1>全部订单</h1>
+                <span>订单总数：<span class="total">{$total}</span></span>
+            </div>
+
+            <div class="main-content">
+                {if count($list) == 0}
+                <div class="none-list">
+                    暂无订单
+                </div>
+                {else}
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th>订单号</th>
+                            <th>图片</th>
+                            <th>下单时间</th>
+                            <th>订单状态</th>
+                            <th>收货邮箱</th>
+                            <th>支付时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {volist name="order_list" id="order"}
+                        <tr>
+                            <td>{$order.order_no}</td>
+                            <td>
+                                <img src="{$order.order_pic|default='__STATIC__/images/default.png'}" alt="订单图片"
+                                    style="width:60px;height:60px;border-radius:8px;object-fit:cover;background:#f5f5f5;">
+                            </td>
+                            <td>{$order.order_time|date='Y-m-d H:i:s',###}</td>
+                            <td>
+                                {if $order.order_status==1}
+                                <span class="unpay">已支付</span>
+                                {else}
+                                <span class="payed">未支付</span>
+                                {/if}
+                            </td>
+                            <td>{$order.order_email|default='--'}</td>
+                            <td>
+                                {if $order.order_pay_time}
+                                {$order.order_pay_time|date='Y-m-d H:i:s',###}
+                                {else}
+                                --
+                                {/if}
+                            </td>
+                            <td>
+                                {if $order.order_status==0}
+                                <a href="{:mac_url('user/pay',['order_no'=>$order.order_no])}" class="btn btn-primary"
+                                    style="padding:6px 18px;font-size:0.98rem;">去支付</a>
+                                {else}
+                                <span style="color:var(--text-light);">-</span>
+                                {/if}
+                            </td>
+                        </tr>
+                        {/volist}
+                    </tbody>
+                </table>
+                {/if}
+            </div>
+
+        </div>
+    </div>
+
+    {include file="user/foot"}
+</body>
+
+</html>

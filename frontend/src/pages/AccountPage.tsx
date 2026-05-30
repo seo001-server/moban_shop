@@ -1,0 +1,789 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
+import { Link, Navigate } from 'react-router-dom'
+
+import { ApiError, apiFetch } from '../api/http'
+
+import type { Order, PaginatedOrders } from '../api/types'
+
+import { useAuth } from '../auth/AuthContext'
+
+import { formatMinor } from '../util/money'
+
+
+
+const STATUS_LABELS: Record<string, string> = {
+
+  pending: '待支付',
+
+  paid: '已支付',
+
+  cancelled: '已取消',
+
+  refunded: '已退款',
+
+}
+
+
+
+type AccountTab = 'overview' | 'orders'
+
+
+
+function avatarInitial(email: string): string {
+
+  const ch = email.trim().charAt(0)
+
+  return ch ? ch.toUpperCase() : '?'
+
+}
+
+
+
+function memberDays(createdAt: string): number {
+
+  const start = new Date(createdAt).getTime()
+
+  const now = Date.now()
+
+  return Math.max(1, Math.ceil((now - start) / (1000 * 60 * 60 * 24)))
+
+}
+
+
+
+function statusClass(status: string): string {
+
+  if (status === 'pending') return 'account-status-pending'
+
+  if (status === 'paid') return 'account-status-paid'
+
+  if (status === 'cancelled') return 'account-status-cancelled'
+
+  if (status === 'refunded') return 'account-status-refunded'
+
+  return 'account-status-cancelled'
+
+}
+
+
+
+export default function AccountPage() {
+
+  const { me, token, loading, refreshMe, logout } = useAuth()
+
+  const [tab, setTab] = useState<AccountTab>('overview')
+
+  const [orders, setOrders] = useState<Order[] | null>(null)
+
+  const [orderTotal, setOrderTotal] = useState(0)
+
+  const [ordersErr, setOrdersErr] = useState<string | null>(null)
+
+  const [payingId, setPayingId] = useState<number | null>(null)
+
+
+
+  const loadOrders = useCallback(async () => {
+
+    try {
+
+      const res = await apiFetch<PaginatedOrders>('/api/orders?page=1&page_size=20')
+
+      setOrders(res.items)
+
+      setOrderTotal(res.total)
+
+      setOrdersErr(null)
+
+    } catch (e) {
+
+      if (e instanceof ApiError) setOrdersErr(e.message)
+
+      else setOrdersErr('加载订单失败')
+
+      setOrders([])
+
+      setOrderTotal(0)
+
+    }
+
+  }, [])
+
+
+
+  useEffect(() => {
+
+    if (token && me) void loadOrders()
+
+  }, [token, me, loadOrders])
+
+
+
+  const paidCount = useMemo(
+
+    () => (orders ?? []).filter((o) => o.status === 'paid').length,
+
+    [orders],
+
+  )
+
+
+
+  async function handlePay(orderId: number) {
+
+    setPayingId(orderId)
+
+    try {
+
+      await apiFetch(`/api/orders/${orderId}/pay`, { method: 'POST' })
+
+      await loadOrders()
+
+    } catch (e) {
+
+      const msg = e instanceof ApiError ? e.message : '支付失败，请稍后重试'
+
+      alert(msg)
+
+    } finally {
+
+      setPayingId(null)
+
+    }
+
+  }
+
+
+
+  if (!token && !loading) {
+
+    return <Navigate to="/login" replace />
+
+  }
+
+
+
+  if (loading) {
+
+    return (
+
+      <div className="account-page">
+
+        <div className="container">
+
+          <div className="account-loading">
+
+            <i className="fas fa-spinner fa-spin" aria-hidden />
+
+            <span>加载中…</span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    )
+
+  }
+
+
+
+  if (!me) {
+
+    return (
+
+      <div className="account-page">
+
+        <div className="container">
+
+          <section className="account-panel account-error-panel">
+
+            <h1 className="account-panel-title">个人中心</h1>
+
+            <p className="muted">无法加载用户信息，请检查网络或重新登录。</p>
+
+            <div className="row gap" style={{ justifyContent: 'center', marginTop: '1rem' }}>
+
+              <button type="button" className="btn btn-register" onClick={() => void refreshMe()}>
+
+                重试
+
+              </button>
+
+              <Link className="btn btn-login" to="/login">
+
+                去登录
+
+              </Link>
+
+            </div>
+
+          </section>
+
+        </div>
+
+      </div>
+
+    )
+
+  }
+
+
+
+  return (
+
+    <div className="account-page">
+
+      <section className="breadcrumb breadcrumb-compact">
+
+        <div className="container">
+
+          <div className="breadcrumb-content">
+
+            <Link to="/">
+
+              <i className="fas fa-home" /> 首页
+
+            </Link>
+
+            <i className="fas fa-chevron-right" />
+
+            <span>个人中心</span>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <div className="container account-layout">
+
+        <aside className="account-sidebar">
+
+          <div className="account-profile">
+
+            <div className="account-avatar" aria-hidden>
+
+              {avatarInitial(me.email)}
+
+            </div>
+
+            <div>
+
+              <div className="account-profile-email">{me.email}</div>
+
+              <div className="account-profile-id">用户 ID · {me.id}</div>
+
+            </div>
+
+          </div>
+
+
+
+          <ul className="account-nav">
+
+            <li className="account-nav-item">
+
+              <button
+
+                type="button"
+
+                className={`account-nav-btn${tab === 'overview' ? ' active' : ''}`}
+
+                onClick={() => setTab('overview')}
+
+              >
+
+                <i className="fas fa-user-circle" aria-hidden />
+
+                账户概览
+
+              </button>
+
+            </li>
+
+            <li className="account-nav-item">
+
+              <button
+
+                type="button"
+
+                className={`account-nav-btn${tab === 'orders' ? ' active' : ''}`}
+
+                onClick={() => setTab('orders')}
+
+              >
+
+                <i className="fas fa-receipt" aria-hidden />
+
+                我的订单
+
+                {orderTotal > 0 ? <span className="account-nav-badge">{orderTotal}</span> : null}
+
+              </button>
+
+            </li>
+
+          </ul>
+
+
+
+          <div className="account-sidebar-actions">
+
+            <Link className="account-sidebar-link" to="/products">
+
+              <i className="fas fa-store" aria-hidden />
+
+              浏览模板
+
+            </Link>
+
+            <Link className="account-sidebar-link" to="/cart">
+
+              <i className="fas fa-shopping-cart" aria-hidden />
+
+              我的购物车
+
+            </Link>
+
+            <button type="button" className="account-sidebar-link" onClick={() => logout()}>
+
+              <i className="fas fa-sign-out-alt" aria-hidden />
+
+              退出登录
+
+            </button>
+
+          </div>
+
+        </aside>
+
+
+
+        <main className="account-main">
+
+          {tab === 'overview' ? (
+
+            <>
+
+              <section className="account-panel">
+
+                <div className="account-panel-head">
+
+                  <div>
+
+                    <h1 className="account-panel-title">账户概览</h1>
+
+                    <p className="account-panel-sub">欢迎回来，这里是您的账户信息与购买概况</p>
+
+                  </div>
+
+                </div>
+
+
+
+                <div className="account-stats">
+
+                  <div className="account-stat-card">
+
+                    <div className="account-stat-label">
+
+                      <i className="fas fa-receipt" aria-hidden />
+
+                      全部订单
+
+                    </div>
+
+                    <div className="account-stat-value">{orderTotal}</div>
+
+                  </div>
+
+                  <div className="account-stat-card">
+
+                    <div className="account-stat-label">
+
+                      <i className="fas fa-check-circle" aria-hidden />
+
+                      已完成
+
+                    </div>
+
+                    <div className="account-stat-value">{paidCount}</div>
+
+                  </div>
+
+                  <div className="account-stat-card">
+
+                    <div className="account-stat-label">
+
+                      <i className="fas fa-calendar-alt" aria-hidden />
+
+                      注册天数
+
+                    </div>
+
+                    <div className="account-stat-value">{memberDays(me.created_at)}</div>
+
+                  </div>
+
+                </div>
+
+
+
+                <div className="account-info-grid">
+
+                  <div className="account-info-item">
+
+                    <div className="account-info-icon">
+
+                      <i className="fas fa-envelope" aria-hidden />
+
+                    </div>
+
+                    <div className="account-info-body">
+
+                      <div className="account-info-label">登录邮箱</div>
+
+                      <div className="account-info-value">{me.email}</div>
+
+                    </div>
+
+                  </div>
+
+                  <div className="account-info-item">
+
+                    <div className="account-info-icon">
+
+                      <i className="fas fa-fingerprint" aria-hidden />
+
+                    </div>
+
+                    <div className="account-info-body">
+
+                      <div className="account-info-label">用户 ID</div>
+
+                      <div className="account-info-value">#{me.id}</div>
+
+                    </div>
+
+                  </div>
+
+                  <div className="account-info-item">
+
+                    <div className="account-info-icon">
+
+                      <i className="fas fa-clock" aria-hidden />
+
+                    </div>
+
+                    <div className="account-info-body">
+
+                      <div className="account-info-label">注册时间</div>
+
+                      <div className="account-info-value">
+
+                        {new Date(me.created_at).toLocaleString()}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  <div className="account-info-item">
+
+                    <div className="account-info-icon">
+
+                      <i className="fas fa-shield-alt" aria-hidden />
+
+                    </div>
+
+                    <div className="account-info-body">
+
+                      <div className="account-info-label">账户状态</div>
+
+                      <div className="account-info-value">正常</div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </section>
+
+
+
+              {orders && orders.length > 0 ? (
+
+                <section className="account-panel">
+
+                  <div className="account-panel-head">
+
+                    <div>
+
+                      <h2 className="account-panel-title" style={{ fontSize: '1.25rem' }}>
+
+                        最近订单
+
+                      </h2>
+
+                      <p className="account-panel-sub">最新 3 笔订单记录</p>
+
+                    </div>
+
+                    <button
+
+                      type="button"
+
+                      className="nav-btn-plain"
+
+                      style={{ color: 'var(--primary)' }}
+
+                      onClick={() => setTab('orders')}
+
+                    >
+
+                      查看全部 <i className="fas fa-arrow-right" aria-hidden />
+
+                    </button>
+
+                  </div>
+
+                  <div className="account-order-list">
+
+                    {orders.slice(0, 3).map((o) => (
+
+                      <OrderCard
+
+                        key={o.id}
+
+                        order={o}
+
+                        paying={payingId === o.id}
+
+                        onPay={handlePay}
+
+                      />
+
+                    ))}
+
+                  </div>
+
+                </section>
+
+              ) : null}
+
+            </>
+
+          ) : (
+
+            <section className="account-panel">
+
+              <div className="account-panel-head">
+
+                <div>
+
+                  <h1 className="account-panel-title">我的订单</h1>
+
+                  <p className="account-panel-sub">
+
+                    {orderTotal > 0 ? `共 ${orderTotal} 笔订单记录` : '查看您的模板购买记录'}
+
+                  </p>
+
+                </div>
+
+              </div>
+
+
+
+              {ordersErr ? (
+
+                <p className="error" role="alert">
+
+                  {ordersErr}
+
+                </p>
+
+              ) : orders === null ? (
+
+                <div className="account-loading">
+
+                  <i className="fas fa-spinner fa-spin" aria-hidden />
+
+                  <span>加载订单…</span>
+
+                </div>
+
+              ) : orders.length === 0 ? (
+
+                <div className="account-empty">
+
+                  <div className="account-empty-icon">
+
+                    <i className="fas fa-box-open" aria-hidden />
+
+                  </div>
+
+                  <h3>暂无订单</h3>
+
+                  <p>您还没有购买任何模板，浏览商城挑选心仪的模板吧</p>
+
+                  <div className="account-empty-actions">
+
+                    <Link className="btn btn-register" to="/products">
+
+                      <i className="fas fa-store" aria-hidden /> 浏览模板
+
+                    </Link>
+
+                    <Link className="btn btn-login" to="/cart">
+
+                      查看购物车
+
+                    </Link>
+
+                  </div>
+
+                </div>
+
+              ) : (
+
+                <div className="account-order-list">
+
+                  {orders.map((o) => (
+
+                    <OrderCard
+
+                      key={o.id}
+
+                      order={o}
+
+                      paying={payingId === o.id}
+
+                      onPay={handlePay}
+
+                    />
+
+                  ))}
+
+                </div>
+
+              )}
+
+            </section>
+
+          )}
+
+        </main>
+
+      </div>
+
+    </div>
+
+  )
+
+}
+
+
+
+function OrderCard({
+
+  order,
+
+  paying,
+
+  onPay,
+
+}: {
+
+  order: Order
+
+  paying: boolean
+
+  onPay: (id: number) => void
+
+}) {
+
+  return (
+
+    <article className="account-order-card">
+
+      <div className="account-order-head">
+
+        <div className="account-order-id">
+
+          <span>订单号</span>#{order.id}
+
+        </div>
+
+        <div className="account-order-date">{new Date(order.created_at).toLocaleString()}</div>
+
+      </div>
+
+      <div className="account-order-body">
+
+        <div className="account-order-summary">
+
+          <strong>{order.item_count} 件商品</strong>
+
+          <br />
+
+          {order.items_summary || '—'}
+
+        </div>
+
+        <div className="account-order-meta">
+
+          <span className={`account-status ${statusClass(order.status)}`}>
+
+            {STATUS_LABELS[order.status] ?? order.status}
+
+          </span>
+
+          <span className="account-order-amount">
+
+            {formatMinor(order.total_amount_minor, order.currency)}
+
+          </span>
+
+          {order.status === 'pending' ? (
+
+            <div className="account-order-actions">
+
+              <button
+
+                type="button"
+
+                className="btn btn-register account-btn-pay"
+
+                disabled={paying}
+
+                onClick={() => onPay(order.id)}
+
+              >
+
+                {paying ? '支付中…' : '立即支付'}
+
+              </button>
+
+            </div>
+
+          ) : null}
+
+        </div>
+
+      </div>
+
+    </article>
+
+  )
+
+}
+
+

@@ -1,0 +1,656 @@
+:root {
+    --dark-bg: #0f172a;
+    --darker-bg: #0a0f1f;
+    --card-bg: #1e293b;
+    --primary: #0071E3;
+    --primary-hover: #0284ff;
+    --secondary: #A951ED;
+    --accent: #00c6ff;
+    --text: #e2e8f0;
+    --text-light: #94a3b8;
+    --success: #10b981;
+    --menu-width: 280px;
+    --collapsed-menu-width: 70px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--dark-bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+    background: radial-gradient(circle at top right, rgba(16, 23, 42, 0.8) 0%, var(--darker-bg) 60%);
+}
+
+a {
+    color: unset;
+    text-decoration: none;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* 导航栏样式 */
+header {
+    background-color: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo img {
+    width: 160px;
+    height: 60px;
+    object-fit: cover;
+}
+
+.nav-links {
+    display: flex;
+    gap: 30px;
+}
+
+.nav-links a {
+    width: 4.5rem;
+    text-align: center;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.nav-links a.active {
+    color: var(--primary);
+}
+
+.nav-links a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--primary);
+}
+
+.nav-links a:hover {
+    color: var(--primary);
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.user-center {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 1rem;
+}
+
+.btn-login {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--primary);
+}
+
+.btn-login:hover {
+    background: rgba(0, 113, 227, 0.1);
+}
+
+.btn-register {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-register:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+footer {
+    background: var(--darker-bg);
+    padding: 70px 0 30px;
+    border-top: 1px solid rgba(94, 234, 212, 0.1);
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+    margin-bottom: 50px;
+}
+
+.footer-col h3 {
+    font-size: 1.3rem;
+    margin-bottom: 25px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.footer-col h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 2px;
+    background: var(--primary);
+}
+
+.footer-links {
+    list-style: none;
+}
+
+.footer-links li {
+    margin-bottom: 12px;
+}
+
+.footer-links a {
+    color: var(--text-light);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-links a:hover {
+    color: var(--primary);
+}
+
+.footer-links a i {
+    font-size: 0.8rem;
+}
+
+.footer-links span {
+    color: var(--text-light);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.footer-links span:hover {
+    color: var(--primary);
+}
+
+.footer-links span i {
+    font-size: 0.8rem;
+}
+
+.social-links {
+    display: flex;
+    justify-content: space-between;
+}
+
+.copyright {
+    text-align: center;
+    padding-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+/* 返回顶部按钮 */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+    box-shadow: 0 4px 15px rgba(0, 113, 227, 0.4);
+    border: none;
+}
+
+.back-to-top.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.back-to-top:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.5);
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.floating {
+    animation: float 4s ease-in-out infinite;
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* 弹窗遮罩 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 61, 98, 0.18);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+}
+
+/* 弹窗主体 */
+.modal-box {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(10, 61, 98, 0.13);
+    min-width: 320px;
+    max-width: 90vw;
+    width: 400px;
+    padding: 0 0 24px 0;
+    animation: modalFadeIn 0.3s;
+    position: relative;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* 标题栏 */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 28px 12px 28px;
+    border-bottom: 1px solid var(--light);
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+}
+
+/* 内容区 */
+.modal-content {
+    padding: 18px 28px 0 28px;
+    color: var(--dark-bg);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 18px 28px 0 28px;
+}
+
+.modal-cancel-btn {
+    background: var(--light);
+    color: var(--primary);
+    border: none;
+    border-radius: 20px;
+    padding: 8px 28px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    box-shadow: 0 2px 8px rgba(56, 173, 169, 0.08);
+}
+
+.modal-confirm-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 28px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(56, 173, 169, 0.08);
+    outline: none;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.modal-confirm-btn:hover,
+.modal-confirm-btn:focus {
+    background: var(--secondary);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(56, 173, 169, 0.13);
+}
+
+.modal-cancel-btn:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.alert-toast {
+    position: fixed;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 220px;
+    max-width: 90vw;
+    background: var(--accent);
+    color: #fff;
+    padding: 16px 32px;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(10, 61, 98, 0.13);
+    font-size: 1.08rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 3000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, top 0.3s;
+}
+
+.alert-toast.success {
+    background: var(--accent);
+    /* 成功：绿色/主题色 */
+}
+
+.alert-toast.error {
+    background: #e74c3c;
+    /* 失败：红色 */
+}
+
+.alert-toast.info {
+    background: var(--primary);
+    /* 信息：主色 */
+}
+
+.alert-toast.show {
+    opacity: 1;
+    pointer-events: auto;
+    top: 60px;
+}
+
+.alert-icon {
+    font-size: 1.3rem;
+    color: #fff;
+}
+
+.contact-list {
+    list-style: none;
+    margin-bottom: 25px;
+}
+
+.contact-item {
+    display: flex;
+
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px dashed #eee;
+}
+
+.contact-item:last-child {
+    border-bottom: none;
+}
+
+.contact-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #007bff;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.contact-value {
+    font-weight: 500;
+    color: #212529;
+    word-break: break-all;
+}
+
+.jump-button {
+    padding: 5px 10px;
+    color: white;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 15px;
+}
+
+.cart-float-btn {
+    position: fixed;
+    right: 32px;
+    bottom: 50%;
+    z-index: 1999;
+    display: flex;
+    align-items: center;
+    background: var(--primary);
+    color: #fff;
+    padding: 14px;
+    border-radius: 32px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
+    font-size: 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, width 0.3s, padding 0.3s;
+    text-decoration: none;
+    width: 56px;
+    /* 只显示图标时的宽度 */
+    overflow: hidden;
+}
+
+.cart-float-btn:hover {
+    background: var(--secondary);
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    width: 148px;
+    /* 展开后的宽度，可根据实际调整 */
+    padding: 14px 22px 14px 18px;
+}
+
+.cart-float-btn:hover .fa-shopping-cart {
+    margin-right: 10px;
+}
+
+.cart-float-btn:hover .cart-float-text {
+    opacity: 1;
+    margin-left: 6px;
+    max-width: 80px;
+    pointer-events: auto;
+}
+
+.cart-float-btn .fa-shopping-cart {
+    margin-right: 0;
+    font-size: 1.4rem;
+    transition: margin 0.3s;
+}
+
+.cart-float-text {
+    opacity: 0;
+    margin-left: 0;
+    max-width: 0;
+    transition: opacity 0.3s, margin 0.3s, max-width 0.3s;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.loader-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.loader-container i {
+    font-size: 3rem;
+    color: var(--accent);
+}
+
+.loader {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #e0e0e0;
+    border-top-color: #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    color: #333;
+    font-size: 18px;
+    margin-top: 15px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .cart-float-btn {
+        right: 12px;
+        bottom: 80px;
+        width: 44px;
+        padding: 12px 14px;
+        font-size: 1rem;
+    }
+
+    .cart-float-btn:hover {
+        width: 44px;
+        padding: 12px 14px;
+    }
+
+    .cart-float-text {
+        display: none;
+    }
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员登录 - {$maccms.site_name}</title>
+    <meta name="keywords" content="{$maccms.site_keywords}" />
+    <meta name="description" content="{$maccms.site_description}" />
+    <link rel="shortcut icon" href="{$maccms.path_tpl}images/ico/favicon.ico" type="image/x-icon">
+    {include file="public/include"}
+    <link rel="stylesheet" href="{$maccms.path_tpl}css/action.css">
+</head>
+
+<body>
+    {include file="user/head"}
+    <div class="login-container">
+        <div class="login-section">
+            <div class="login-header">
+                <h1 class="login-title">欢迎回来</h1>
+                <p class="login-subtitle">请登录您的账户以继续</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="user_name" class="form-label">账号</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="user_name" name="user_name" class="form-control" placeholder="输入您的账号"
+                            autocomplete="off" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="user_pwd" class="form-label">密码</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="user_pwd" name="user_pwd" class="form-control" placeholder="输入您的密码"
+                            required>
+                    </div>
+                </div>
+
+                {if condition="$GLOBALS['config']['user']['login_verify'] eq 1"}
+                <div class="form-group">
+                    <label for="verify" class="form-label">验证码</label>
+                    <div class="input-with-icon flex">
+                        <i class="fas verify-icon"></i>
+                        <input type="text" class="form-control" id="verify" name="verify" placeholder="请输入验证码"
+                            autocomplete="off" required>
+                        <img src="{:url('verify/index')}" onclick="this.src=this.src+'?'+Math.random()">
+                    </div>
+                </div>
+                {/if}
+
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember">
+                        <label for="remember">记住我</label>
+                    </div>
+                    <a href="{:url('user/findpass')}" class="forgot-password">忘记密码?</a>
+                </div>
+
+                <button type="submit" class="btn btn-login">登录账户</button>
+
+                {if condition="$GLOBALS['config']['connect']['qq']['status'] eq 1"}
+                <div class="divider">
+                    <span>或使用以下方式登录</span>
+                </div>
+
+                <div class="social-login">
+                    <button type="button" class="social-btn google">
+                        <i class="fab fa-google"></i>
+                        <span>Google</span>
+                    </button>
+                    <button type="button" class="social-btn facebook">
+                        <i class="fab fa-facebook-f"></i>
+                        <span>Facebook</span>
+                    </button>
+                    <button type="button" class="social-btn twitter">
+                        <i class="fab fa-twitter"></i>
+                        <span>Twitter</span>
+                    </button>
+                </div>
+                {/if}
+                <div class="register-link">
+                    还没有账户? <a href="{:url('user/reg')}">立即注册</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    {include file="user/foot"}
+</body>
+
+</html>

@@ -1,0 +1,52 @@
+<footer>
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h3>关于我们</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px;">
+                    {$maccms.site_name}是领先的苹果CMS模板供应商，致力于为开发者提供高质量、专业化的网站模板解决方案。</p>
+            </div>
+
+            <div class="footer-col">
+                <h3>产品服务</h3>
+                <ul class="footer-links">
+                    <li><a href="{:mac_url('arttype/1')}"><i class="fas fa-angle-right"></i> 模板商城</a></li>
+                    <li class="add-btn"><span><i class="fas fa-angle-right"></i> 定制开发</span></li>
+                    <li class="add-btn"><span><i class="fas fa-angle-right"></i> 授权许可</span></li>
+                    <li class="add-btn"><span><i class="fas fa-angle-right"></i> 技术支持</span></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h3>帮助中心</h3>
+                <ul class="footer-links">
+                    <li><a href="{:mac_url('label/install_guide')}"><i class="fas fa-angle-right"></i> 安装指南</a></li>
+                    <li><a href="{:mac_url('label/service')}"><i class="fas fa-angle-right"></i> 服务条款</a></li>
+                    <li><a href="{:mac_url('label/copyright_notice')}"><i class="fas fa-angle-right"></i> 版权声明</a></li>
+                    <li class="add-btn"><span><i class="fas fa-angle-right"></i> 联系我们</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="copyright">
+            <p>© 2023 {$maccms.site_name}. 保留所有权利. {$maccms.site_icp}</p>
+        </div>
+    </div>
+</footer>
+
+<!-- 返回顶部按钮 -->
+<button class="back-to-top" id="backToTop">
+    <i class="fas fa-arrow-up"></i>
+</button>
+
+<a href="{:mac_url('label/cart')}" class="cart-float-btn" title="查看购物车">
+    <i class="fas fa-shopping-cart"></i>
+    <span class="cart-float-text">购物车</span>
+</a>
+
+{include file="public/component/dialog"}
+{include file="public/component/alert"}
+{include file="public/component/loading"}
+<script src="{$maccms.path_tpl}js/common.js"></script>
+<script src="{$maccms.path_tpl}js/jquery.min.js"></script>
+{include file="art/action"}

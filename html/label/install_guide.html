@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安装指南 - {$maccms.site_name}</title>
+    <meta name="keywords" content="{$maccms.site_keywords}">
+    <meta name="description" content="{$maccms.site_description}">
+    <link rel="shortcut icon" href="{$maccms.path_tpl}images/ico/favicon.ico" type="image/x-icon">
+    {include file="public/include"}
+    <link rel="stylesheet" href="{$maccms.path_tpl}css/label.css">
+</head>
+
+<body>
+    {include file="public/head"}
+
+    <section class="section-container">
+        <div class="section-title">
+            <h2>水果模板网模板安装指南 - 苹果cms V10版本</h2>
+            <p>按照以下步骤，快速完成模板安装与配置</p>
+        </div>
+        <div class="section-content">
+            <div class="section-date">
+                <div>
+                    <strong>生效日期: </strong> 2025 年 1 月 1 日
+                </div>
+                <div>
+                    <strong>最后更新: </strong> 2025 年 1 月 1 日
+                </div>
+            </div>
+            <ul class="section-ul">
+                <li>
+                    <strong>1. 下载模板文件：</strong>
+                    <br>前往本站模板中心，选择并下载您需要的模板压缩包（.zip格式）。
+                </li>
+                <br>
+                <li>
+                    <strong>2. 上传至服务器：</strong>
+                    <br>将下载的模板压缩包上传到网站根目录下的 <code>/template/</code> 文件夹。
+                </li>
+                <br>
+                <li>
+                    <strong>3. 解压模板包：</strong>
+                    <br>在 <code>/template/</code> 目录下解压模板压缩包，确保解压后有对应的模板文件夹。
+                </li>
+                <br>
+                <li>
+                    <strong>4. 后台启用模板：</strong>
+                    <br>登录苹果CMS后台，进入“系统”-“网站参数配置”-“网站模板”，选择刚上传的模板并保存。
+                </li>
+                <br>
+                <li>
+                    <strong>5. 清理缓存并生成页面：</strong>
+                    <br>在后台右上角处点击“清理缓存”,再前往上方“生成”选项中生成对应页面。
+                </li>
+                <br>
+                <li>
+                    <strong>6. 访问前台查看效果：</strong>
+                    <br>刷新网站首页，即可看到新模板生效。
+                </li>
+            </ul>
+            <div style="margin-top:32px;">
+                <a href="{:mac_url('arttype/1')}" class="btn btn-primary" style="margin-right:18px;">
+                    <i class="fas fa-shopping-cart"></i> 浏览更多模板
+                </a>
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> 返回首页
+                </a>
+            </div>
+        </div>
+        <div style="margin-top:40px;color:var(--text-light);font-size:0.98rem;">
+            <strong>常见问题：</strong>
+            <ul style="margin-top:10px;list-style:disc inside;">
+                <li>如遇模板不显示、样式错乱，请确认模板文件已完整上传并启用。</li>
+                <li>如需技术支持，请通过网站底部联系方式联系我们。</li>
+            </ul>
+        </div>
+    </section>
+
+    {include file="public/foot"}
+</body>
+
+</html>

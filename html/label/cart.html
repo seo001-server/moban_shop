@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>购物车 - {$maccms.site_name}</title>
+    <meta name="keywords" content="{$maccms.site_keywords}">
+    <meta name="description" content="{$maccms.site_description}">
+    <link rel="shortcut icon" href="{$maccms.path_tpl}images/ico/favicon.ico" type="image/x-icon" />
+    {include file="public/include"}
+    <link rel="stylesheet" href="{$maccms.path_tpl}css/cart.css">
+</head>
+
+<body>
+    {include file="public/head"}
+
+    <div class="container" style="margin-top: 8rem;">
+        <div class="section-title" style="margin-bottom:30px;">
+            <div class="title">
+                <h2>我的购物车</h2>
+                <p>您已选择以下模板，支持批量结算</p>
+            </div>
+
+            <div class="deleteBtns">
+                <button class="btn-delete" onclick="removeAll()">删除全部</button>
+            </div>
+
+        </div>
+        <div id="cart-list"></div>
+        <div id="cart-footer" class="cart-footer">
+            <div>
+                <span style="font-size:1.1rem;">总计：</span>
+                <span id="cart-total" class="cart-total"><span id="total">0.00</span></span>
+            </div>
+            <button class="btn btn-primary btn-gopay" id="checkout-btn">去结算</button>
+        </div>
+    </div>
+
+    <!-- 购物车为空时的提示 -->
+    <div id="cart-empty" class="cart-empty">
+        购物车为空，快去选购模板吧！
+        <br><br>
+        <a href="{:mac_url('arttype/1')}" class="btn btn-secondary">浏览模板</a>
+    </div>
+
+    {include file="public/foot"}
+    <script src="{$maccms.path_tpl}js/cart.js"></script>
+    <script>
+
+        function renderCart() {
+            const cart = getCart();
+            const cartList = $('#cart-list');
+            const cartFooter = $('#cart-footer');
+            const cartEmpty = $('#cart-empty');
+            const cartTotal = $('#cart-total');
+            if (cart.length === 0) {
+                cartList.html('');
+                cartFooter.hide();
+                cartEmpty.show();
+                return;
+            }
+            cartFooter.show();
+            cartEmpty.hide();
+            let total = 0;
+            let html = `
+        <table class="cart-table">
+            <thead>
+                <tr style="background:rgba(0,113,227,0.08);">
+                    <th><input type="checkbox" id="select-all"></th>
+                    <th>图片</th>
+                    <th>模板名称</th>
+                    <th>单价</th>
+                    <th>数量</th>
+                    <th>小计</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody class="cart-body">`;
+            cart.forEach(item => {
+                const qty = item.qty || 1;
+                const subtotal = Number(item.price) * qty;
+                total += subtotal;
+                const error_img = '{$maccms.path_tpl}images/default.png';
+                html += `
+                    <tr class="cart-body-tr">
+                            <td><input type="checkbox" class="cart-checkbox" value="${item.id}"></td>
+                            <td><img class="cart-img" src="${item.art_img}" alt="${item.name}" ></td>
+                            <td>${item.name}</td>
+                            <td style="color:var(--primary);font-weight:600;">${item.price}</td>
+                            <td>
+                                <div class="cart-qty-group">
+                                    <button class="cart-qty-btn" onclick="changeQty('${item.id}', -1)" ${qty <= 1 ? 'disabled' : ''}>-</button>
+                                    <input class="cart-qty-input" type="number" name="qtyInput" min="1" value="${qty}" onchange="changeQtyInput('${item.id}', this.value)">
+                                    <button class="cart-qty-btn" onclick="changeQty('${item.id}', 1)">+</button>
+                                </div>
+                            </td>
+                            <td style="color:var(--success);font-weight:600;">${subtotal}</td>
+                            <td>
+                                <button class="btn btn-secondary btn-delete" onclick="removeFromCart('${item.id}')">移除</button>
+                            </td>
+                        </tr>
+                    `;
+            });
+
+            html += ` 
+                        </tbody >
+                    </table >
+                `;
+            cartList.html(html);
+            cartTotal.text(total);
+        }
+    </script>
+</body>
+
+</html>
