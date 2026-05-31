@@ -8,6 +8,9 @@ import { useToast } from '../context/ToastContext'
 import { ORDER_STATUS_LABELS, orderStatusClass } from '../lib/orderLabels'
 import { formatMinor } from '../util/money'
 import '../styles/order-detail.css'
+import { PageMeta } from '../components/PageMeta'
+import { ProductImage } from '../components/ProductImage'
+import { isProductDelisted } from '../lib/productDelisted'
 
 export default function OrderDetailPage() {
   const nav = useNavigate()
@@ -103,6 +106,7 @@ export default function OrderDetailPage() {
 
   return (
     <div className="order-detail-page">
+      <PageMeta title={`订单 ${order.order_no}`} description="查看订单明细与交付资源" noIndex />
       <div className="container">
         <div className="order-detail-head">
           <div className="order-detail-head-left">
@@ -118,11 +122,13 @@ export default function OrderDetailPage() {
           <section className="order-detail-card">
             <h2>商品明细</h2>
             <ul className="order-detail-items">
-              {items.map((item) => (
-                <li key={item.product_id} className="order-detail-item">
+              {items.map((item) => {
+                const delisted = isProductDelisted(item)
+                return (
+                <li key={item.product_id} className={`order-detail-item${delisted ? ' is-delisted' : ''}`}>
                   <div className="order-detail-item-thumb">
                     {item.image_url ? (
-                      <img src={item.image_url} alt="" />
+                      <ProductImage src={item.image_url} alt={item.product_title} width={72} height={72} />
                     ) : (
                       <span>
                         <i className="fas fa-layer-group" aria-hidden />
@@ -130,9 +136,16 @@ export default function OrderDetailPage() {
                     )}
                   </div>
                   <div className="order-detail-item-body">
-                    <Link to={`/products/${item.product_id}`} className="order-detail-item-title">
-                      {item.product_title}
-                    </Link>
+                    <div className="order-detail-item-title-row">
+                      {delisted ? (
+                        <span className="order-detail-item-title">{item.product_title}</span>
+                      ) : (
+                        <Link to={`/products/${item.product_id}`} className="order-detail-item-title">
+                          {item.product_title}
+                        </Link>
+                      )}
+                      {delisted ? <span className="product-delisted-badge">已下架</span> : null}
+                    </div>
                     <p className="muted small">
                       单价 {formatMinor(item.unit_price_minor, order.currency)} · 数量 ×{item.quantity}
                     </p>
@@ -142,7 +155,7 @@ export default function OrderDetailPage() {
                     <ProductDeliveryActions item={item} paid={paid} compact />
                   </div>
                 </li>
-              ))}
+              )})}
             </ul>
           </section>
 

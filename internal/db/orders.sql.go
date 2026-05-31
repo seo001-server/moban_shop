@@ -171,7 +171,9 @@ SELECT
   p.slug AS product_slug,
   p.title AS product_title,
   p.preview_url AS product_preview_url,
+  p.download_url AS product_download_url,
   p.image_url AS product_image_url,
+  p.visible AS product_visible,
   oi.quantity,
   oi.unit_price_minor
 FROM order_items oi
@@ -187,7 +189,9 @@ type ListOrderItemsByOrderIDRow struct {
 	ProductSlug        string         `json:"product_slug"`
 	ProductTitle       string         `json:"product_title"`
 	ProductPreviewUrl  sql.NullString `json:"product_preview_url"`
+	ProductDownloadUrl sql.NullString `json:"product_download_url"`
 	ProductImageUrl    sql.NullString `json:"product_image_url"`
+	ProductVisible     bool           `json:"product_visible"`
 	Quantity           uint32         `json:"quantity"`
 	UnitPriceMinor     int64          `json:"unit_price_minor"`
 }
@@ -208,7 +212,9 @@ func (q *Queries) ListOrderItemsByOrderID(ctx context.Context, orderID uint64) (
 			&i.ProductSlug,
 			&i.ProductTitle,
 			&i.ProductPreviewUrl,
+			&i.ProductDownloadUrl,
 			&i.ProductImageUrl,
+			&i.ProductVisible,
 			&i.Quantity,
 			&i.UnitPriceMinor,
 		); err != nil {

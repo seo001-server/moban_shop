@@ -12,6 +12,7 @@ func scanProductFields(p *Product) []any {
 		&p.Currency,
 		&p.ImageUrl,
 		&p.PreviewUrl,
+		&p.DownloadUrl,
 		&p.SortOrder,
 		&p.Recommended,
 		&p.Visible,

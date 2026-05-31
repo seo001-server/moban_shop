@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/http'
 import type { BusinessItem } from '../api/types'
 import { useBusinessSections } from '../hooks/useBusinessSections'
+import { PageMeta } from '../components/PageMeta'
 
 type Props = {
   slug: string
@@ -56,6 +57,7 @@ export default function BusinessSectionPage({ slug }: Props) {
 
   return (
     <>
+      <PageMeta title={section.label} description={section.description || `${section.label} · Moban Shop`} />
       <section className="breadcrumb breadcrumb-compact">
         <div className="container">
           <div className="breadcrumb-content">

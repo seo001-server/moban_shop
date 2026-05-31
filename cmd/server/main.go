@@ -23,6 +23,7 @@ import (
 	"moban_shop/internal/catalog"
 	"moban_shop/internal/cms"
 	"moban_shop/internal/config"
+	"moban_shop/internal/downloads"
 	"moban_shop/internal/orders"
 	dbpkg "moban_shop/internal/database"
 	"moban_shop/internal/db"
@@ -52,7 +53,7 @@ func main() {
 	q := db.New(sqlDB)
 	cms.BootstrapDocs(context.Background(), q, logger)
 	catHandler := catalog.New(q)
-	authHandler := auth.NewHandler(q, []byte(cfg.JWTSecret), cfg.JWTIssuer, cfg.JWTAccessTTL)
+	authHandler := auth.NewHandler(q, sqlDB, []byte(cfg.JWTSecret), cfg.JWTIssuer, cfg.JWTAccessTTL, cfg.PasswordResetTTL, cfg.PasswordResetExposeLink, cfg.FrontendBaseURL)
 	adminAuth := admin.NewAuthHandler(q, []byte(cfg.JWTAdminSecret), cfg.JWTAdminIssuer, cfg.JWTAdminAccessTTL)
 	adminProducts := admin.NewProductsHandler(q)
 	adminBusiness := admin.NewBusinessHandler(q)
@@ -66,6 +67,7 @@ func main() {
 	uploadDir := resolveUploadDir()
 	adminUploads := admin.NewUploadsHandler(uploadDir)
 	ordersHandler := orders.NewHandler(q, sqlDB)
+	downloadsHandler := downloads.NewHandler(q, uploadDir)
 	cartHandler := cart.NewHandler(q)
 
 	e := echo.New()
@@ -130,9 +132,12 @@ func main() {
 	api.GET("/docs/:slug", catHandler.GetDoc)
 	api.POST("/auth/register", authHandler.Register)
 	api.POST("/auth/login", authHandler.Login)
+	api.POST("/auth/forgot-password", authHandler.ForgotPassword)
+	api.POST("/auth/reset-password", authHandler.ResetPassword)
 	api.GET("/me", authHandler.Me, auth.RequireAuth([]byte(cfg.JWTSecret), cfg.JWTIssuer))
 
 	ordersAuthed := api.Group("", auth.RequireAuth([]byte(cfg.JWTSecret), cfg.JWTIssuer))
+	ordersAuthed.POST("/me/password", authHandler.ChangePassword)
 	ordersAuthed.POST("/orders", ordersHandler.CreateOrder)
 	ordersAuthed.GET("/orders", ordersHandler.ListMyOrders)
 	ordersAuthed.GET("/orders/:id", ordersHandler.GetMyOrder)
@@ -143,6 +148,7 @@ func main() {
 	ordersAuthed.DELETE("/cart/items/:product_id", cartHandler.DeleteItem)
 	ordersAuthed.DELETE("/cart", cartHandler.Clear)
 	ordersAuthed.POST("/cart/merge", cartHandler.Merge)
+	ordersAuthed.GET("/downloads/products/:id", downloadsHandler.DownloadProduct)
 
 	adminGrp := api.Group("/admin")
 	adminGrp.POST("/auth/login", adminAuth.Login)
@@ -153,6 +159,7 @@ func main() {
 	adminAuthed.POST("/me/password", adminAuth.ChangePassword)
 	adminAuthed.GET("/dashboard", adminDashboard.GetDashboard)
 	adminAuthed.POST("/uploads/image", adminUploads.UploadImage)
+	adminAuthed.POST("/uploads/archive", adminUploads.UploadArchive, echomiddleware.BodyLimit("100M"))
 	adminAuthed.GET("/users", adminUsers.ListUsers)
 	adminAuthed.GET("/users/:id", adminUsers.GetUser)
 	adminAuthed.GET("/users/:id/orders", adminUsers.ListUserOrders)

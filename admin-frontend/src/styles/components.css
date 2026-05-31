@@ -236,6 +236,10 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .form-grid__full {
+    grid-column: 1 / -1;
+  }
+
   .form-grid--icon-row {
     grid-template-columns: repeat(2, 1fr);
   }

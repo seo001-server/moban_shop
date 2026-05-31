@@ -4,6 +4,7 @@ import { ApiError, apiFetch } from '../api/http'
 import type { TokenResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
 
 function authRedirectPath(from: string | null): string {
   return from?.startsWith('/') ? from : '/account'
@@ -47,6 +48,7 @@ export default function RegisterPage() {
 
   return (
     <div className="container auth-page-simple">
+      <PageMeta title="注册" description={PAGE_DESCRIPTIONS.register} noIndex />
       <div className="component-card auth-form-card">
         <div className="component-title auth-form-card-title">
           <h2>

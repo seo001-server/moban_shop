@@ -65,21 +65,25 @@ type Querier interface {
 	AdminUpdateNickname(ctx context.Context, nickname string, id uint64) error
 	AdminUpdatePassword(ctx context.Context, passwordHash string, id uint64) error
 	AdminUpdateProduct(ctx context.Context, arg AdminUpdateProductParams) error
+	UserOwnsPaidProduct(ctx context.Context, arg UserOwnsPaidProductParams) (bool, error)
 	CountOrdersByUser(ctx context.Context, userID uint64) (int64, error)
 	ClearCartByUser(ctx context.Context, userID uint64) (int64, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (sql.Result, error)
 	DeleteCartItem(ctx context.Context, arg DeleteCartItemParams) (int64, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (sql.Result, error)
+	CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) (sql.Result, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error)
 	GetAdminByAccount(ctx context.Context, account string) (Admin, error)
 	GetAdminByID(ctx context.Context, id uint64) (Admin, error)
 	GetCartItemByUserProduct(ctx context.Context, arg GetCartItemByUserProductParams) (CartItem, error)
 	GetProductByID(ctx context.Context, id uint64) (Product, error)
+	GetProductByIDInternal(ctx context.Context, id uint64) (Product, error)
 	GetDocBySlug(ctx context.Context, slug string) (Doc, error)
 	GetOrderHeaderForUser(ctx context.Context, id uint64, userID uint64) (GetOrderHeaderForUserRow, error)
 	GetSiteContent(ctx context.Context, contentKey string) (SiteContent, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uint64) (User, error)
+	GetValidPasswordResetToken(ctx context.Context, tokenHash string) (PasswordResetToken, error)
 	InsertCartItem(ctx context.Context, arg InsertCartItemParams) (sql.Result, error)
 	ListBusinessBySection(ctx context.Context, sectionSlug string) ([]Business, error)
 	ListBusinessSections(ctx context.Context) ([]BusinessSection, error)
@@ -88,9 +92,12 @@ type Querier interface {
 	ListOrdersByUserPaged(ctx context.Context, userID uint64, limit int32, offset int32) ([]ListOrdersByUserPagedRow, error)
 	ListProducts(ctx context.Context) ([]Product, error)
 	ListProductsByCategory(ctx context.Context, category string) ([]Product, error)
+	SearchProducts(ctx context.Context, arg SearchProductsParams) ([]Product, error)
+	MarkPasswordResetTokenUsed(ctx context.Context, id uint64) error
 	Ping(ctx context.Context) (int32, error)
 	PayOrderIfPending(ctx context.Context, id uint64, userID uint64) (int64, error)
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (int64, error)
+	UserUpdatePassword(ctx context.Context, arg UserUpdatePasswordParams) error
 	UpdateOrderStatusByID(ctx context.Context, newStatus string, id uint64, oldStatus string) (int64, error)
 	UpsertDoc(ctx context.Context, slug string, title string, markdown string) error
 	UpsertSiteContent(ctx context.Context, contentKey string, contentJSON []byte) error

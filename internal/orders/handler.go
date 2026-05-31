@@ -43,6 +43,8 @@ type orderItemJSON struct {
 	ProductTitle   string  `json:"product_title"`
 	PreviewURL     *string `json:"preview_url,omitempty"`
 	ImageURL       *string `json:"image_url,omitempty"`
+	ProductVisible bool    `json:"product_visible"`
+	HasDownload    bool    `json:"has_download"`
 	Quantity       uint32  `json:"quantity"`
 	UnitPriceMinor int64   `json:"unit_price_minor"`
 	LineTotalMinor int64   `json:"line_total_minor"`
@@ -162,6 +164,8 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 			ProductTitle:   ln.Product.Title,
 			PreviewURL:     nullStringPtr(ln.Product.PreviewUrl),
 			ImageURL:       nullStringPtr(ln.Product.ImageUrl),
+			ProductVisible: ln.Product.Visible,
+			HasDownload:    itemHasDownload(status == "paid", ln.Product.Visible, ln.Product.DownloadUrl),
 			Quantity:       ln.Quantity,
 			UnitPriceMinor: ln.Product.PriceMinor,
 			LineTotalMinor: lineTotal,
@@ -288,12 +292,15 @@ func (h *Handler) validateItems(ctx context.Context, items []createItemBody) ([]
 		if it.ProductID == 0 || it.Quantity == 0 {
 			return nil, echo.NewHTTPError(http.StatusBadRequest, "商品项无效")
 		}
-		p, err := h.Q.GetProductByID(ctx, it.ProductID)
+		p, err := h.Q.GetProductByIDInternal(ctx, it.ProductID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, echo.NewHTTPError(http.StatusBadRequest, "商品不存在")
 			}
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
+		}
+		if !p.Visible {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, "商品已下架")
 		}
 		if currency == "" {
 			currency = p.Currency
@@ -337,6 +344,7 @@ func headerToJSON(h db.GetOrderHeaderForUserRow, items []db.ListOrderItemsByOrde
 		CreatedAt:        h.CreatedAt.UTC().Format(time.RFC3339Nano),
 	}
 	parts := make([]string, 0, len(items))
+	paid := h.Status == "paid"
 	for _, it := range items {
 		lineTotal := it.UnitPriceMinor * int64(it.Quantity)
 		out.Items = append(out.Items, orderItemJSON{
@@ -345,6 +353,8 @@ func headerToJSON(h db.GetOrderHeaderForUserRow, items []db.ListOrderItemsByOrde
 			ProductTitle:   it.ProductTitle,
 			PreviewURL:     nullStringPtr(it.ProductPreviewUrl),
 			ImageURL:       nullStringPtr(it.ProductImageUrl),
+			ProductVisible: it.ProductVisible,
+			HasDownload:    itemHasDownload(paid, it.ProductVisible, it.ProductDownloadUrl),
 			Quantity:       it.Quantity,
 			UnitPriceMinor: it.UnitPriceMinor,
 			LineTotalMinor: lineTotal,

@@ -45,6 +45,8 @@ export type OrderItem = {
   product_title: string
   preview_url?: string | null
   image_url?: string | null
+  product_visible?: boolean
+  has_download?: boolean
   quantity: number
   unit_price_minor: number
   line_total_minor: number

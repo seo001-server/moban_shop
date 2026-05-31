@@ -11,8 +11,8 @@ import (
 )
 
 const adminCreateProduct = `-- name: AdminCreateProduct :execresult
-INSERT INTO products (slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO products (slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type AdminCreateProductParams struct {
@@ -24,6 +24,7 @@ type AdminCreateProductParams struct {
 	Currency    string         `json:"currency"`
 	ImageUrl    sql.NullString `json:"image_url"`
 	PreviewUrl  sql.NullString `json:"preview_url"`
+	DownloadUrl sql.NullString `json:"download_url"`
 	SortOrder   int32          `json:"sort_order"`
 	Recommended bool           `json:"recommended"`
 	Visible     bool           `json:"visible"`
@@ -41,6 +42,7 @@ func (q *Queries) AdminCreateProduct(ctx context.Context, arg AdminCreateProduct
 		arg.Currency,
 		arg.ImageUrl,
 		arg.PreviewUrl,
+		arg.DownloadUrl,
 		arg.SortOrder,
 		arg.Recommended,
 		arg.Visible,
@@ -60,7 +62,7 @@ func (q *Queries) AdminDeleteProduct(ctx context.Context, id uint64) error {
 }
 
 const adminGetProductByID = `-- name: AdminGetProductByID :one
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE id = ?
 LIMIT 1
@@ -74,7 +76,7 @@ func (q *Queries) AdminGetProductByID(ctx context.Context, id uint64) (Product, 
 }
 
 const adminGetProductBySlug = `-- name: AdminGetProductBySlug :one
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE slug = ?
 LIMIT 1
@@ -88,7 +90,7 @@ func (q *Queries) AdminGetProductBySlug(ctx context.Context, slug string) (Produ
 }
 
 const adminListProducts = `-- name: AdminListProducts :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 ORDER BY sort_order ASC, id ASC
 `
@@ -118,7 +120,7 @@ func (q *Queries) AdminListProducts(ctx context.Context) ([]Product, error) {
 
 const adminUpdateProduct = `-- name: AdminUpdateProduct :exec
 UPDATE products
-SET slug = ?, category = ?, title = ?, description = ?, price_minor = ?, currency = ?, image_url = ?, preview_url = ?, sort_order = ?, recommended = ?, visible = ?, downloads = ?, score = ?
+SET slug = ?, category = ?, title = ?, description = ?, price_minor = ?, currency = ?, image_url = ?, preview_url = ?, download_url = ?, sort_order = ?, recommended = ?, visible = ?, downloads = ?, score = ?
 WHERE id = ?
 `
 
@@ -131,6 +133,7 @@ type AdminUpdateProductParams struct {
 	Currency    string         `json:"currency"`
 	ImageUrl    sql.NullString `json:"image_url"`
 	PreviewUrl  sql.NullString `json:"preview_url"`
+	DownloadUrl sql.NullString `json:"download_url"`
 	SortOrder   int32          `json:"sort_order"`
 	Recommended bool           `json:"recommended"`
 	Visible     bool           `json:"visible"`
@@ -149,6 +152,7 @@ func (q *Queries) AdminUpdateProduct(ctx context.Context, arg AdminUpdateProduct
 		arg.Currency,
 		arg.ImageUrl,
 		arg.PreviewUrl,
+		arg.DownloadUrl,
 		arg.SortOrder,
 		arg.Recommended,
 		arg.Visible,

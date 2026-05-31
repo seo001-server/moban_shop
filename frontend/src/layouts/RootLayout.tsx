@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useCart } from '../cart/CartContext'
 import { useBusinessSections } from '../hooks/useBusinessSections'
+import { GlobalSearch } from '../components/GlobalSearch'
 
 function adminHref(): string | null {
   const raw = import.meta.env.VITE_ADMIN_URL
@@ -57,6 +58,7 @@ export function RootLayout() {
               </NavLink>
             </div>
             <div className="navbar-actions">
+              <GlobalSearch />
               <Link className="nav-btn-plain nav-cart-link" to="/cart">
                 <span className="cart-icon-wrap" aria-hidden>
                   <i className="fas fa-shopping-cart" />
@@ -67,11 +69,22 @@ export function RootLayout() {
               </Link>
               {me ? (
                 <>
-                  <Link className="nav-btn-plain" to="/account">
-                    个人中心
+                  <Link
+                    className="nav-btn-plain nav-icon-btn"
+                    to="/account"
+                    aria-label="个人中心"
+                    title="个人中心"
+                  >
+                    <i className="fas fa-user-circle" aria-hidden />
                   </Link>
-                  <button type="button" className="nav-btn-plain" onClick={() => logout()}>
-                    退出
+                  <button
+                    type="button"
+                    className="nav-btn-plain nav-icon-btn"
+                    onClick={() => logout()}
+                    aria-label="退出登录"
+                    title="退出登录"
+                  >
+                    <i className="fas fa-sign-out-alt" aria-hidden />
                   </button>
                 </>
               ) : (
@@ -174,16 +187,6 @@ export function RootLayout() {
       >
         <i className="fas fa-arrow-up" />
       </button>
-
-      <Link to="/cart" className="cart-float-btn" title="打开购物车">
-        <span className="cart-icon-wrap" aria-hidden>
-          <i className="fas fa-shopping-cart" />
-          {totalQty > 0 ? (
-            <span className="cart-chip">{totalQty > 99 ? '99+' : totalQty}</span>
-          ) : null}
-        </span>
-        <span className="cart-float-text">购物车</span>
-      </Link>
     </>
   )
 }

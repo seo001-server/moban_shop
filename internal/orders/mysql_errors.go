@@ -3,6 +3,7 @@ package orders
 import (
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -21,4 +22,11 @@ func nullStringPtr(v sql.NullString) *string {
 	}
 	s := v.String
 	return &s
+}
+
+func itemHasDownload(paid bool, visible bool, downloadURL sql.NullString) bool {
+	if !paid || !visible || !downloadURL.Valid {
+		return false
+	}
+	return strings.TrimSpace(downloadURL.String) != ""
 }

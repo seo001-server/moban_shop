@@ -8,6 +8,12 @@ import type { Order, PaginatedOrders } from '../api/types'
 
 import { ProductDeliveryActions } from '../components/ProductDeliveryActions'
 
+import { AccountSecurityPanel } from '../components/AccountSecurityPanel'
+
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
+
+import { ProductImage } from '../components/ProductImage'
+
 import { useAuth } from '../auth/AuthContext'
 
 import { useToast } from '../context/ToastContext'
@@ -15,6 +21,7 @@ import { useToast } from '../context/ToastContext'
 import { ORDER_STATUS_LABELS, orderStatusClass } from '../lib/orderLabels'
 
 import { fetchPurchasedProducts, type PurchasedProduct } from '../lib/purchasedProducts'
+import { isProductDelisted } from '../lib/productDelisted'
 
 import { formatMinor } from '../util/money'
 
@@ -22,7 +29,7 @@ import '../styles/order-detail.css'
 
 
 
-type AccountTab = 'overview' | 'orders' | 'library'
+type AccountTab = 'overview' | 'orders' | 'library' | 'security'
 
 
 
@@ -49,7 +56,7 @@ function memberDays(createdAt: string): number {
 
 
 function parseAccountTab(raw: string | null): AccountTab {
-  if (raw === 'orders' || raw === 'library') return raw
+  if (raw === 'orders' || raw === 'library' || raw === 'security') return raw
   return 'overview'
 }
 
@@ -57,11 +64,11 @@ function parseAccountTab(raw: string | null): AccountTab {
 
 export default function AccountPage() {
 
-  const { me, token, loading, refreshMe, logout } = useAuth()
+  const { me, token, loading, refreshMe } = useAuth()
 
   const { showToast } = useToast()
 
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [tab, setTab] = useState<AccountTab>(() => parseAccountTab(searchParams.get('tab')))
 
@@ -124,6 +131,18 @@ export default function AccountPage() {
     setTab(next)
 
   }, [searchParams])
+
+
+
+  function selectTab(next: AccountTab) {
+
+    setTab(next)
+
+    if (next === 'overview') setSearchParams({})
+
+    else setSearchParams({ tab: next })
+
+  }
 
 
 
@@ -291,6 +310,8 @@ export default function AccountPage() {
 
     <div className="account-page">
 
+      <PageMeta title="个人中心" description={PAGE_DESCRIPTIONS.account} noIndex />
+
       <section className="breadcrumb breadcrumb-compact">
 
         <div className="container">
@@ -337,17 +358,25 @@ export default function AccountPage() {
 
 
 
-          <ul className="account-nav">
+          <ul className="account-nav" role="tablist" aria-label="个人中心导航">
 
-            <li className="account-nav-item">
+            <li className="account-nav-item" role="presentation">
 
               <button
 
                 type="button"
 
+                id="tab-overview"
+
+                role="tab"
+
+                aria-selected={tab === 'overview'}
+
+                aria-controls="panel-overview"
+
                 className={`account-nav-btn${tab === 'overview' ? ' active' : ''}`}
 
-                onClick={() => setTab('overview')}
+                onClick={() => selectTab('overview')}
 
               >
 
@@ -359,15 +388,23 @@ export default function AccountPage() {
 
             </li>
 
-            <li className="account-nav-item">
+            <li className="account-nav-item" role="presentation">
 
               <button
 
                 type="button"
 
+                id="tab-orders"
+
+                role="tab"
+
+                aria-selected={tab === 'orders'}
+
+                aria-controls="panel-orders"
+
                 className={`account-nav-btn${tab === 'orders' ? ' active' : ''}`}
 
-                onClick={() => setTab('orders')}
+                onClick={() => selectTab('orders')}
 
               >
 
@@ -383,21 +420,59 @@ export default function AccountPage() {
 
 
 
-            <li className="account-nav-item">
+            <li className="account-nav-item" role="presentation">
 
               <button
 
                 type="button"
 
+                id="tab-library"
+
+                role="tab"
+
+                aria-selected={tab === 'library'}
+
+                aria-controls="panel-library"
+
                 className={`account-nav-btn${tab === 'library' ? ' active' : ''}`}
 
-                onClick={() => setTab('library')}
+                onClick={() => selectTab('library')}
 
               >
 
                 <i className="fas fa-box-open" aria-hidden />
 
                 已购资源
+
+              </button>
+
+            </li>
+
+
+
+            <li className="account-nav-item" role="presentation">
+
+              <button
+
+                type="button"
+
+                id="tab-security"
+
+                role="tab"
+
+                aria-selected={tab === 'security'}
+
+                aria-controls="panel-security"
+
+                className={`account-nav-btn${tab === 'security' ? ' active' : ''}`}
+
+                onClick={() => selectTab('security')}
+
+              >
+
+                <i className="fas fa-shield-alt" aria-hidden />
+
+                账户安全
 
               </button>
 
@@ -425,14 +500,6 @@ export default function AccountPage() {
 
             </Link>
 
-            <button type="button" className="account-sidebar-link" onClick={() => logout()}>
-
-              <i className="fas fa-sign-out-alt" aria-hidden />
-
-              退出登录
-
-            </button>
-
           </div>
 
         </aside>
@@ -445,7 +512,7 @@ export default function AccountPage() {
 
             <>
 
-              <section className="account-panel">
+              <section className="account-panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
 
                 <div className="account-panel-head">
 
@@ -619,7 +686,7 @@ export default function AccountPage() {
 
                       style={{ color: 'var(--primary)' }}
 
-                      onClick={() => setTab('orders')}
+                      onClick={() => selectTab('orders')}
 
                     >
 
@@ -655,7 +722,7 @@ export default function AccountPage() {
 
           ) : tab === 'library' ? (
 
-            <section className="account-panel">
+            <section className="account-panel" id="panel-library" role="tabpanel" aria-labelledby="tab-library">
 
               <div className="account-panel-head">
 
@@ -715,15 +782,16 @@ export default function AccountPage() {
 
                 <div className="order-library-list">
 
-                  {library.map((item) => (
-
-                    <article key={item.product_id} className="order-library-card">
+                  {library.map((item) => {
+                    const delisted = isProductDelisted(item)
+                    return (
+                    <article key={item.product_id} className={`order-library-card${delisted ? ' is-delisted' : ''}`}>
 
                       <div className="order-library-thumb">
 
                         {item.image_url ? (
 
-                          <img src={item.image_url} alt="" />
+                          <ProductImage src={item.image_url} alt={item.product_title} width={64} height={64} />
 
                         ) : (
 
@@ -735,7 +803,10 @@ export default function AccountPage() {
 
                       <div className="order-library-body">
 
-                        <div className="order-library-title">{item.product_title}</div>
+                        <div className="order-library-title-row">
+                          <div className="order-library-title">{item.product_title}</div>
+                          {delisted ? <span className="product-delisted-badge">已下架</span> : null}
+                        </div>
 
                         <p className="muted small order-library-meta">
 
@@ -748,18 +819,20 @@ export default function AccountPage() {
                       </div>
 
                     </article>
-
-                  ))}
-
+                  )})}
                 </div>
 
               )}
 
             </section>
 
+          ) : tab === 'security' ? (
+
+            <AccountSecurityPanel />
+
           ) : (
 
-            <section className="account-panel">
+            <section className="account-panel" id="panel-orders" role="tabpanel" aria-labelledby="tab-orders">
 
               <div className="account-panel-head">
 

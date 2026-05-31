@@ -33,6 +33,7 @@ type productBody struct {
 	Currency     string   `json:"currency"`
 	ImageURL     *string  `json:"image_url"`
 	PreviewURL   *string  `json:"preview_url"`
+	DownloadURL  *string  `json:"download_url"`
 	SortOrder    *int32   `json:"sort_order"`
 	Recommended  *bool    `json:"recommended"`
 	Visible      *bool    `json:"visible"`
@@ -50,6 +51,7 @@ type productJSON struct {
 	Currency     string  `json:"currency"`
 	ImageURL     *string `json:"image_url,omitempty"`
 	PreviewURL   *string `json:"preview_url,omitempty"`
+	DownloadURL  *string `json:"download_url,omitempty"`
 	SortOrder    int32   `json:"sort_order"`
 	Recommended  bool    `json:"recommended"`
 	Visible      bool    `json:"visible"`
@@ -84,6 +86,10 @@ func rowToJSON(p db.Product) productJSON {
 	if p.PreviewUrl.Valid {
 		s := p.PreviewUrl.String
 		out.PreviewURL = &s
+	}
+	if p.DownloadUrl.Valid {
+		s := p.DownloadUrl.String
+		out.DownloadURL = &s
 	}
 	return out
 }
@@ -251,6 +257,7 @@ func (h *ProductsHandler) CreateProduct(c echo.Context) error {
 		Currency:     strings.TrimSpace(strings.ToUpper(body.Currency)),
 		ImageUrl:     nullableString(body.ImageURL),
 		PreviewUrl:   nullableString(body.PreviewURL),
+		DownloadUrl:  nullableString(body.DownloadURL),
 		SortOrder:    sortOrderPtr(body.SortOrder),
 		Recommended:  recommendedFromPtr(body.Recommended),
 		Visible:      visibleFromPtr(body.Visible),
@@ -308,6 +315,7 @@ func (h *ProductsHandler) UpdateProduct(c echo.Context) error {
 		Currency:    strings.TrimSpace(strings.ToUpper(body.Currency)),
 		ImageUrl:    nullableString(body.ImageURL),
 		PreviewUrl:  nullableString(body.PreviewURL),
+		DownloadUrl: nullableString(body.DownloadURL),
 		SortOrder:   sortOrderPtr(body.SortOrder),
 		Recommended: recommendedFromPtr(body.Recommended),
 		Visible:     visibleFromPtr(body.Visible),
@@ -373,6 +381,7 @@ func (h *ProductsHandler) DuplicateProduct(c echo.Context) error {
 		Currency:    src.Currency,
 		ImageUrl:    src.ImageUrl,
 		PreviewUrl:  src.PreviewUrl,
+		DownloadUrl: src.DownloadUrl,
 		SortOrder:   src.SortOrder,
 		Recommended: false,
 		Visible:     false,

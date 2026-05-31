@@ -6,7 +6,8 @@ SELECT
   p.title,
   p.price_minor,
   p.currency,
-  p.image_url
+  p.image_url,
+  p.visible AS product_visible
 FROM cart_items ci
 INNER JOIN products p ON p.id = ci.product_id
 WHERE ci.user_id = ?

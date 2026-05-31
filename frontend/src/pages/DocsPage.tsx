@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
 import { apiFetch } from '../api/http'
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
 import templateDevMd from '../../../template-dev.md?raw'
 
 type TocItem = { depth: 2 | 3; text: string; id: string }
@@ -103,6 +104,7 @@ export default function DocsPage() {
 
   return (
     <>
+      <PageMeta title="开发文档" description={PAGE_DESCRIPTIONS.docs} />
       <section className="breadcrumb breadcrumb-compact">
         <div className="container">
           <div className="breadcrumb-content">

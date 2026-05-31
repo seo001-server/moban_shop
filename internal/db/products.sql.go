@@ -10,7 +10,7 @@ import (
 )
 
 const getProductByID = `-- name: GetProductByID :one
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE id = ? AND visible = 1
 LIMIT 1
@@ -23,8 +23,22 @@ func (q *Queries) GetProductByID(ctx context.Context, id uint64) (Product, error
 	return i, err
 }
 
+const getProductByIDInternal = `-- name: GetProductByIDInternal :one
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
+FROM products
+WHERE id = ?
+LIMIT 1
+`
+
+func (q *Queries) GetProductByIDInternal(ctx context.Context, id uint64) (Product, error) {
+	row := q.db.QueryRowContext(ctx, getProductByIDInternal, id)
+	var i Product
+	err := row.Scan(scanProductFields(&i)...)
+	return i, err
+}
+
 const listProducts = `-- name: ListProducts :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE visible = 1
 ORDER BY sort_order ASC, id ASC
@@ -54,7 +68,7 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 }
 
 const listProductsByCategory = `-- name: ListProductsByCategory :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE category = ? AND visible = 1
 ORDER BY sort_order ASC, id ASC
@@ -62,6 +76,58 @@ ORDER BY sort_order ASC, id ASC
 
 func (q *Queries) ListProductsByCategory(ctx context.Context, category string) ([]Product, error) {
 	rows, err := q.db.QueryContext(ctx, listProductsByCategory, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Product{}
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(scanProductFields(&i)...); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchProducts = `-- name: SearchProducts :many
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
+FROM products
+WHERE visible = 1
+  AND (? = '' OR category = ?)
+  AND (
+    title LIKE CONCAT('%', ?, '%')
+    OR slug LIKE CONCAT('%', ?, '%')
+    OR (description IS NOT NULL AND description LIKE CONCAT('%', ?, '%'))
+  )
+ORDER BY
+  CASE
+    WHEN title LIKE CONCAT('%', ?, '%') THEN 0
+    WHEN slug LIKE CONCAT('%', ?, '%') THEN 1
+    ELSE 2
+  END,
+  sort_order ASC,
+  id ASC
+`
+
+type SearchProductsParams struct {
+	Category string `json:"category"`
+	Keyword  string `json:"keyword"`
+}
+
+func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) ([]Product, error) {
+	rows, err := q.db.QueryContext(ctx, searchProducts,
+		arg.Category, arg.Category,
+		arg.Keyword, arg.Keyword, arg.Keyword,
+		arg.Keyword, arg.Keyword,
+	)
 	if err != nil {
 		return nil, err
 	}

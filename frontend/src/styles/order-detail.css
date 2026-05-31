@@ -122,6 +122,25 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+}
+
+.product-delivery-error {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+}
+
+.order-detail-item-title-row,
+.order-library-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-detail-item.is-delisted .order-detail-item-thumb,
+.order-library-card.is-delisted .order-library-thumb {
+  opacity: 0.72;
 }
 
 .product-delivery-actions.is-compact .btn-delivery {

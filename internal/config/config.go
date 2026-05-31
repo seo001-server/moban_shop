@@ -17,9 +17,12 @@ type Config struct {
 	JWTIssuer    string        // optional claim issuer ("iss") for user JWT
 	JWTAccessTTL time.Duration // user access token lifetime
 
-	JWTAdminSecret    string        // HS256 key for admin-only JWT (must differ from JWTSecret)
-	JWTAdminIssuer    string        // iss for admin JWT
-	JWTAdminAccessTTL time.Duration // admin access token lifetime
+	JWTAdminSecret          string // HS256 key for admin-only JWT (must differ from JWTSecret)
+	JWTAdminIssuer          string // iss for admin JWT
+	JWTAdminAccessTTL       time.Duration
+	PasswordResetExposeLink bool
+	PasswordResetTTL        time.Duration
+	FrontendBaseURL         string
 }
 
 func Load() Config {
@@ -40,6 +43,11 @@ func Load() Config {
 		adminTTL = parseTTLSeconds(adminTTLRaw)
 	}
 
+	resetExpose := strings.TrimSpace(os.Getenv("PASSWORD_RESET_EXPOSE_LINK")) == "1" ||
+		strings.EqualFold(strings.TrimSpace(os.Getenv("PASSWORD_RESET_EXPOSE_LINK")), "true")
+	resetTTL := parseTTLSeconds(getEnv("PASSWORD_RESET_TTL_SECONDS", "3600"))
+	frontendURL := strings.TrimRight(strings.TrimSpace(os.Getenv("FRONTEND_URL")), "/")
+
 	return Config{
 		HTTPAddr:          httpAddr,
 		DatabaseDSN:       ds,
@@ -50,6 +58,9 @@ func Load() Config {
 		JWTAdminSecret:    adminSecret,
 		JWTAdminIssuer:    adminIssuer,
 		JWTAdminAccessTTL: adminTTL,
+		PasswordResetExposeLink: resetExpose,
+		PasswordResetTTL:        resetTTL,
+		FrontendBaseURL:         frontendURL,
 	}
 }
 

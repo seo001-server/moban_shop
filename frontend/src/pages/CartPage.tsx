@@ -2,7 +2,85 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { useCart } from '../cart/CartContext'
+import type { CartLine } from '../cart/cartTypes'
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
+import { ProductImage } from '../components/ProductImage'
 import { formatMinor } from '../util/money'
+import { isProductDelisted } from '../lib/productDelisted'
+
+function CartQtyControls({
+  item,
+  setQty,
+  delisted,
+}: {
+  item: CartLine
+  setQty: (id: number, qty: number) => Promise<void>
+  delisted: boolean
+}) {
+  return (
+    <div className="cart-qty-group">
+      <button
+        type="button"
+        className="cart-qty-btn"
+        disabled={item.qty <= 1}
+        onClick={() => void setQty(item.id, item.qty - 1)}
+        aria-label={`减少 ${item.title} 数量`}
+      >
+        -
+      </button>
+      <input
+        className="cart-qty-input"
+        type="number"
+        min={1}
+        value={item.qty}
+        disabled={delisted}
+        aria-label={`${item.title} 数量`}
+        onChange={(ev) => void setQty(item.id, parseInt(ev.target.value, 10) || 1)}
+      />
+      <button
+        type="button"
+        className="cart-qty-btn"
+        disabled={delisted}
+        onClick={() => void setQty(item.id, item.qty + 1)}
+        aria-label={`增加 ${item.title} 数量`}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
+function CartItemTitle({ item }: { item: CartLine }) {
+  const delisted = isProductDelisted(item)
+  if (delisted) {
+    return (
+      <div className="cart-item-title-row">
+        <span className="cart-item-card-title is-static">{item.title}</span>
+        <span className="product-delisted-badge">已下架</span>
+      </div>
+    )
+  }
+  return <Link to={`/products/${item.id}`}>{item.title}</Link>
+}
+
+function CartThumb({ item }: { item: CartLine }) {
+  if (item.image_url) {
+    return (
+      <ProductImage
+        src={item.image_url}
+        alt={item.title}
+        className="cart-img"
+        width={72}
+        height={72}
+      />
+    )
+  }
+  return (
+    <div className="cart-img cart-img-placeholder" aria-hidden>
+      <i className="fas fa-image" />
+    </div>
+  )
+}
 
 export default function CartPage() {
   const nav = useNavigate()
@@ -29,11 +107,21 @@ export default function CartPage() {
   }
 
   useEffect(() => {
-    if (lines.length === 0) setSelected({})
-  }, [lines.length])
+    if (lines.length === 0) {
+      setSelected({})
+      return
+    }
+    setSelected((s) => {
+      const next = { ...s }
+      for (const line of lines) {
+        if (isProductDelisted(line)) next[line.id] = false
+      }
+      return next
+    })
+  }, [lines])
 
   const selectedLines = useMemo(
-    () => lines.filter((l) => selected[l.id] !== false),
+    () => lines.filter((l) => selected[l.id] !== false && !isProductDelisted(l)),
     [lines, selected],
   )
 
@@ -54,20 +142,25 @@ export default function CartPage() {
     nav('/checkout')
   }
 
+  const breadcrumb = (
+    <section className="breadcrumb breadcrumb-compact">
+      <div className="container">
+        <div className="breadcrumb-content">
+          <Link to="/">
+            <i className="fas fa-home" /> 首页
+          </Link>
+          <i className="fas fa-chevron-right" />
+          <span>购物车</span>
+        </div>
+      </div>
+    </section>
+  )
+
   if (authLoading || (token && cartLoading && lines.length === 0)) {
     return (
       <>
-        <section className="breadcrumb breadcrumb-compact">
-          <div className="container">
-            <div className="breadcrumb-content">
-              <Link to="/">
-                <i className="fas fa-home" /> 首页
-              </Link>
-              <i className="fas fa-chevron-right" />
-              <span>购物车</span>
-            </div>
-          </div>
-        </section>
+        <PageMeta title="购物车" description={PAGE_DESCRIPTIONS.cart} />
+        {breadcrumb}
         <div className="container cart-page-wrap">
           <p className="muted">加载中…</p>
         </div>
@@ -78,17 +171,8 @@ export default function CartPage() {
   if (!token) {
     return (
       <>
-        <section className="breadcrumb breadcrumb-compact">
-          <div className="container">
-            <div className="breadcrumb-content">
-              <Link to="/">
-                <i className="fas fa-home" /> 首页
-              </Link>
-              <i className="fas fa-chevron-right" />
-              <span>购物车</span>
-            </div>
-          </div>
-        </section>
+        <PageMeta title="购物车" description={PAGE_DESCRIPTIONS.cart} noIndex />
+        {breadcrumb}
         <div className="container cart-page-wrap">
           <div className="cart-empty-static">
             <i className="fas fa-user-lock" style={{ fontSize: '3rem', opacity: 0.35 }} />
@@ -108,17 +192,8 @@ export default function CartPage() {
 
   return (
     <>
-      <section className="breadcrumb breadcrumb-compact">
-        <div className="container">
-          <div className="breadcrumb-content">
-            <Link to="/">
-              <i className="fas fa-home" /> 首页
-            </Link>
-            <i className="fas fa-chevron-right" />
-            <span>购物车</span>
-          </div>
-        </div>
-      </section>
+      <PageMeta title="购物车" description={PAGE_DESCRIPTIONS.cart} noIndex />
+      {breadcrumb}
 
       <div className="container cart-page-wrap">
         <div className="cart-page-toolbar">
@@ -143,7 +218,7 @@ export default function CartPage() {
           </div>
         ) : (
           <>
-            <table className="cart-table">
+            <table className="cart-table cart-table-desktop">
               <thead>
                 <tr className="cart-thead-row">
                   <th>
@@ -166,58 +241,29 @@ export default function CartPage() {
                 {lines.map((item) => {
                   const sub = item.price_minor * item.qty
                   const checked = selected[item.id] !== false
+                  const delisted = isProductDelisted(item)
                   return (
-                    <tr key={item.id} className="cart-body-tr">
+                    <tr key={item.id} className={`cart-body-tr${delisted ? ' is-delisted' : ''}`}>
                       <td>
                         <input
                           type="checkbox"
                           checked={checked}
+                          disabled={delisted}
                           onChange={() => toggleOne(item.id)}
                           aria-label={`选择 ${item.title}`}
                         />
                       </td>
                       <td>
-                        {item.image_url ? (
-                          <img className="cart-img" src={item.image_url} alt="" />
-                        ) : (
-                          <div className="cart-img cart-img-placeholder">
-                            <i className="fas fa-image" />
-                          </div>
-                        )}
+                        <CartThumb item={item} />
                       </td>
                       <td>
-                        <Link to={`/products/${item.id}`}>{item.title}</Link>
+                        <CartItemTitle item={item} />
                       </td>
                       <td style={{ color: 'var(--primary)', fontWeight: 600 }}>
                         {formatMinor(item.price_minor, item.currency)}
                       </td>
                       <td>
-                        <div className="cart-qty-group">
-                          <button
-                            type="button"
-                            className="cart-qty-btn"
-                            disabled={item.qty <= 1}
-                            onClick={() => void setQty(item.id, item.qty - 1)}
-                          >
-                            -
-                          </button>
-                          <input
-                            className="cart-qty-input"
-                            type="number"
-                            min={1}
-                            value={item.qty}
-                            onChange={(ev) =>
-                              void setQty(item.id, parseInt(ev.target.value, 10) || 1)
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="cart-qty-btn"
-                            onClick={() => void setQty(item.id, item.qty + 1)}
-                          >
-                            +
-                          </button>
-                        </div>
+                        <CartQtyControls item={item} setQty={setQty} delisted={delisted} />
                       </td>
                       <td style={{ color: 'var(--success)', fontWeight: 600 }}>
                         {formatMinor(sub, item.currency)}
@@ -236,6 +282,56 @@ export default function CartPage() {
                 })}
               </tbody>
             </table>
+
+            <div className="cart-mobile-list" aria-label="购物车商品列表">
+              {lines.map((item) => {
+                const sub = item.price_minor * item.qty
+                const checked = selected[item.id] !== false
+                const delisted = isProductDelisted(item)
+                return (
+                  <article key={item.id} className={`cart-item-card${delisted ? ' is-delisted' : ''}`}>
+                    <div className="cart-item-card-head">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={delisted}
+                        onChange={() => toggleOne(item.id)}
+                        aria-label={`选择 ${item.title}`}
+                      />
+                      <div className="cart-item-card-thumb">
+                        <CartThumb item={item} />
+                      </div>
+                      <div className="cart-item-card-body">
+                        {delisted ? (
+                          <div className="cart-item-title-row">
+                            <span className="cart-item-card-title is-static">{item.title}</span>
+                            <span className="product-delisted-badge">已下架</span>
+                          </div>
+                        ) : (
+                          <Link to={`/products/${item.id}`} className="cart-item-card-title">
+                            {item.title}
+                          </Link>
+                        )}
+                        <p className="cart-item-card-price">
+                          {formatMinor(item.price_minor, item.currency)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="cart-item-card-row">
+                      <CartQtyControls item={item} setQty={setQty} delisted={delisted} />
+                      <span className="cart-item-card-subtotal">{formatMinor(sub, item.currency)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-remove-line"
+                      onClick={() => void removeLine(item.id)}
+                    >
+                      移除
+                    </button>
+                  </article>
+                )
+              })}
+            </div>
 
             <div className="cart-footer cart-footer-inner">
               <div>

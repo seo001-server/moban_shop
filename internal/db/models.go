@@ -25,9 +25,10 @@ type Product struct {
 	Description sql.NullString `json:"description"`
 	PriceMinor  int64          `json:"price_minor"`
 	Currency    string         `json:"currency"`
-	ImageUrl    sql.NullString `json:"image_url"`
-	PreviewUrl  sql.NullString `json:"preview_url"`
-	SortOrder   int32          `json:"sort_order"`
+	ImageUrl     sql.NullString `json:"image_url"`
+	PreviewUrl   sql.NullString `json:"preview_url"`
+	DownloadUrl  sql.NullString `json:"download_url"`
+	SortOrder    int32          `json:"sort_order"`
 	Recommended bool           `json:"recommended"`
 	Visible     bool           `json:"visible"`
 	Downloads   int64          `json:"downloads"`

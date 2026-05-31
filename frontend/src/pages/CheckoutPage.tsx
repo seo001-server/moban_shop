@@ -6,6 +6,9 @@ import { useAuth } from '../auth/AuthContext'
 import { useCart } from '../cart/CartContext'
 import { formatMinor } from '../util/money'
 import '../styles/checkout.css'
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
+import { ProductImage } from '../components/ProductImage'
+import { isProductDelisted } from '../lib/productDelisted'
 
 function CheckoutSteps({ current }: { current: 1 | 2 | 3 }) {
   const steps = [
@@ -55,6 +58,7 @@ export default function CheckoutPage() {
   )
   const itemCount = useMemo(() => checkoutLines.reduce((s, l) => s + l.qty, 0), [checkoutLines])
   const currency = checkoutLines[0]?.currency ?? 'CNY'
+  const hasDelisted = useMemo(() => checkoutLines.some(isProductDelisted), [checkoutLines])
 
   if (!token && !loading) {
     return <Navigate to="/login?from=/checkout" replace />
@@ -84,7 +88,9 @@ export default function CheckoutPage() {
               <i className="fas fa-check" />
             </div>
             <h1>下单成功</h1>
-            <p className="checkout-success-lede">模拟支付已完成，模板订单已记入您的账户。</p>
+            <p className="checkout-success-lede">
+              模拟支付已完成，可在订单详情中下载模板源码包。
+            </p>
             <dl className="checkout-success-meta">
               <div>
                 <dt>订单号</dt>
@@ -142,6 +148,10 @@ export default function CheckoutPage() {
   }
 
   async function submit() {
+    if (hasDelisted) {
+      setErr('包含已下架商品，请返回购物车移除后再结算')
+      return
+    }
     setErr(null)
     setSubmitting(true)
     const body: CreateOrderRequest = {
@@ -174,6 +184,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="checkout-shell">
+      <PageMeta title="确认订单" description={PAGE_DESCRIPTIONS.checkout} noIndex />
       <CheckoutBreadcrumb tail="确认订单" />
       <div className="container checkout-page">
         <div className="checkout-progress">
@@ -191,11 +202,13 @@ export default function CheckoutPage() {
                 <i className="fas fa-box-open" aria-hidden /> 商品清单
               </h2>
               <ul className="checkout-item-list">
-                {checkoutLines.map((l) => (
-                  <li key={l.id} className="checkout-item">
+                {checkoutLines.map((l) => {
+                  const delisted = isProductDelisted(l)
+                  return (
+                  <li key={l.id} className={`checkout-item${delisted ? ' is-delisted' : ''}`}>
                     <div className="checkout-item-thumb">
                       {l.image_url ? (
-                        <img src={l.image_url} alt="" />
+                        <ProductImage src={l.image_url} alt={l.title} width={72} height={72} />
                       ) : (
                         <span className="checkout-item-thumb-ph">
                           <i className="fas fa-layer-group" aria-hidden />
@@ -203,9 +216,16 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <div className="checkout-item-body">
-                      <Link to={`/products/${l.id}`} className="checkout-item-title">
-                        {l.title}
-                      </Link>
+                      {delisted ? (
+                        <div className="cart-item-title-row">
+                          <span className="checkout-item-title is-static">{l.title}</span>
+                          <span className="product-delisted-badge">已下架</span>
+                        </div>
+                      ) : (
+                        <Link to={`/products/${l.id}`} className="checkout-item-title">
+                          {l.title}
+                        </Link>
+                      )}
                       <p className="checkout-item-unit muted">
                         单价 {formatMinor(l.price_minor, l.currency)}
                       </p>
@@ -215,7 +235,7 @@ export default function CheckoutPage() {
                       {formatMinor(l.price_minor * l.qty, l.currency)}
                     </div>
                   </li>
-                ))}
+                )})}
               </ul>
             </section>
 
@@ -265,6 +285,12 @@ export default function CheckoutPage() {
                 </div>
               </dl>
 
+              {hasDelisted ? (
+                <p className="error checkout-summary-error" role="alert">
+                  包含已下架商品，请返回购物车移除后再结算
+                </p>
+              ) : null}
+
               {err ? (
                 <p className="error checkout-summary-error" role="alert">
                   {err}
@@ -274,7 +300,7 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 className="btn btn-primary checkout-pay-btn"
-                disabled={submitting}
+                disabled={submitting || hasDelisted}
                 onClick={() => void submit()}
               >
                 {submitting ? (

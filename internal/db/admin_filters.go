@@ -192,7 +192,7 @@ func (q *Queries) AdminCountProductsFiltered(ctx context.Context, arg AdminProdu
 }
 
 const adminListProductsFilteredPaged = `-- name: AdminListProductsFilteredPaged :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 WHERE (? = '' OR category = ?)
   AND (? = '' OR recommended = ?)

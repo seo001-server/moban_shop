@@ -109,6 +109,25 @@ func sortProducts(items []db.Product, sortKey string) {
 	}
 }
 
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return s
+}
+
+func normalizeSearchQuery(raw string) (string, bool) {
+	q := strings.TrimSpace(raw)
+	if q == "" {
+		return "", false
+	}
+	runes := []rune(q)
+	if len(runes) > 80 {
+		q = string(runes[:80])
+	}
+	return escapeLike(q), true
+}
+
 func (h *Handler) ListProducts(c echo.Context) error {
 	ctx := c.Request().Context()
 	raw := strings.TrimSpace(c.QueryParam("category"))
@@ -116,23 +135,39 @@ func (h *Handler) ListProducts(c echo.Context) error {
 	if !ok {
 		return echo.NewHTTPError(http.StatusBadRequest, "排序参数无效")
 	}
+	if raw != "" && raw != "film" && raw != "book" && raw != "game" && raw != "shop" {
+		return echo.NewHTTPError(http.StatusBadRequest, "分类参数无效")
+	}
+
+	searchQ, hasSearch := normalizeSearchQuery(c.QueryParam("q"))
 
 	var (
 		items []db.Product
 		err   error
 	)
-	switch raw {
-	case "":
-		items, err = h.Q.ListProducts(ctx)
-	case "film", "book", "game", "shop":
-		items, err = h.Q.ListProductsByCategory(ctx, raw)
-	default:
-		return echo.NewHTTPError(http.StatusBadRequest, "分类参数无效")
+	if hasSearch {
+		items, err = h.Q.SearchProducts(ctx, db.SearchProductsParams{
+			Category: raw,
+			Keyword:  searchQ,
+		})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "搜索商品失败")
+		}
+		if sortKey != "" {
+			sortProducts(items, sortKey)
+		}
+	} else {
+		switch raw {
+		case "":
+			items, err = h.Q.ListProducts(ctx)
+		case "film", "book", "game", "shop":
+			items, err = h.Q.ListProductsByCategory(ctx, raw)
+		}
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "获取商品列表失败")
+		}
+		sortProducts(items, sortKey)
 	}
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "获取商品列表失败")
-	}
-	sortProducts(items, sortKey)
 	out := make([]productJSON, 0, len(items))
 	for _, p := range items {
 		out = append(out, rowToJSON(p))

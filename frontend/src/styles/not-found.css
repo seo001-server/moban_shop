@@ -1,0 +1,141 @@
+.not-found-page {
+  padding: 48px 0 80px;
+}
+
+.not-found-inner {
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+}
+
+.not-found-code {
+  font-size: clamp(4rem, 18vw, 6rem);
+  font-weight: 800;
+  line-height: 1;
+  margin: 0 0 12px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.not-found-inner h1 {
+  font-size: 1.75rem;
+  margin-bottom: 12px;
+}
+
+.not-found-desc {
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.page-loading-fallback {
+  padding: 64px 0;
+  text-align: center;
+}
+
+.auth-success-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  line-height: 1.6;
+}
+
+.auth-reset-link-wrap {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+/* ---------- 购物车移动端卡片 ---------- */
+.cart-mobile-list {
+  display: none;
+}
+
+.cart-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+}
+
+.cart-item-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cart-item-card-thumb {
+  flex-shrink: 0;
+}
+
+.cart-item-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-item-card-title {
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.cart-item-card-title:hover {
+  color: var(--primary);
+}
+
+.cart-item-card-price {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.cart-item-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cart-item-card-subtotal {
+  color: var(--success);
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .cart-table-desktop {
+    display: none;
+  }
+
+  .cart-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cart-footer-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .cart-footer-inner .btn-gopay {
+    width: 100%;
+  }
+}

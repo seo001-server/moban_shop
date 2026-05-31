@@ -200,6 +200,19 @@
   color: var(--primary);
 }
 
+.checkout-item-title.is-static {
+  pointer-events: none;
+  cursor: default;
+}
+
+.checkout-item-title.is-static:hover {
+  color: var(--text);
+}
+
+.checkout-item.is-delisted .checkout-item-thumb {
+  opacity: 0.72;
+}
+
 .checkout-item-unit {
   font-size: 0.88rem;
 }

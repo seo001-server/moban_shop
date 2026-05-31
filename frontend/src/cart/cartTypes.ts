@@ -5,6 +5,7 @@ export type CartLine = {
   price_minor: number
   currency: string
   image_url: string | null
+  product_visible?: boolean
   qty: number
 }
 

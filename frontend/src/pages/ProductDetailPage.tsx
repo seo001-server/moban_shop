@@ -7,6 +7,8 @@ import { normalizeProduct } from '../lib/normalizeProduct'
 import { useCart } from '../cart/CartContext'
 import { useAuth } from '../auth/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
+import { ProductImage } from '../components/ProductImage'
 
 const CATEGORY_LABEL: Record<string, string> = {
   film: '影视娱乐',
@@ -215,6 +217,7 @@ export default function ProductDetailPage() {
 
   return (
     <>
+      <PageMeta title={p.title} description={p.description?.slice(0, 140) || PAGE_DESCRIPTIONS.products} />
       <section className="breadcrumb">
         <div className="container">
           <div className="breadcrumb-content">
@@ -241,7 +244,7 @@ export default function ProductDetailPage() {
                 ) : null}
                 <div className="preview-image">
                   {p.image_url ? (
-                    <img src={p.image_url} alt="" />
+                    <ProductImage src={p.image_url} alt={p.title} width={480} height={360} eager />
                   ) : (
                     <div className="preview-placeholder-note">
                       <i className="fas fa-layer-group fa-3x" style={{ opacity: 0.4 }} />
@@ -395,7 +398,7 @@ export default function ProductDetailPage() {
                     <div key={r.id} className="detail-template-card">
                       <div className="detail-template-img">
                         {r.image_url ? (
-                          <img src={r.image_url} alt="" />
+                          <ProductImage src={r.image_url} alt={r.title} width={240} height={160} />
                         ) : (
                           <div className="related-img-ph">
                             <i className="fas fa-image" />

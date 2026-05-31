@@ -1,6 +1,0 @@
--- Demo: one order with two templates (adjust user_id / product_id to match your DB).
--- INSERT INTO orders (user_id, status, total_amount_minor, currency) VALUES (1, 'paid', 3980, 'USD');
--- SET @oid = LAST_INSERT_ID();
--- INSERT INTO order_items (order_id, product_id, quantity, unit_price_minor) VALUES
---   (@oid, 1, 1, 990),
---   (@oid, 2, 1, 2990);

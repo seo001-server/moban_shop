@@ -5,7 +5,7 @@ import (
 )
 
 const adminListProductsPaged = `-- name: AdminListProductsPaged :many
-SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, sort_order, recommended, visible, downloads, score, created_at
+SELECT id, slug, category, title, description, price_minor, currency, image_url, preview_url, download_url, sort_order, recommended, visible, downloads, score, created_at
 FROM products
 ORDER BY sort_order ASC, id ASC
 LIMIT ? OFFSET ?

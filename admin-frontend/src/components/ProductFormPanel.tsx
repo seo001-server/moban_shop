@@ -28,6 +28,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
   const [currency, setCurrency] = useState('USD')
   const [imageUrl, setImageUrl] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
+  const [downloadUrl, setDownloadUrl] = useState('')
   const [sortOrder, setSortOrder] = useState(0)
   const [recommended, setRecommended] = useState(false)
   const [visible, setVisible] = useState(true)
@@ -37,8 +38,13 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
   const [loading, setLoading] = useState(!isNew)
   const [err, setErr] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingArchive, setUploadingArchive] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const archiveFileRef = useRef<HTMLInputElement>(null)
+
+  const ARCHIVE_ACCEPT =
+    '.zip,.rar,.7z,.tar,.gz,.tgz,.bz2,.tbz2,.xz,.txz,.tar.gz,.tar.bz2,.tar.xz,.tar.zst,application/zip,application/x-rar-compressed,application/x-7z-compressed,application/gzip,application/x-tar'
 
   useEffect(() => {
     if (isNew) {
@@ -49,6 +55,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
       setCurrency('USD')
       setImageUrl('')
       setPreviewUrl('')
+      setDownloadUrl('')
       setSortOrder(0)
       setRecommended(false)
       setVisible(true)
@@ -76,6 +83,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
         setCurrency(p.currency)
         setImageUrl(p.image_url ?? '')
         setPreviewUrl(p.preview_url ?? '')
+        setDownloadUrl(p.download_url ?? '')
         setSortOrder(p.sort_order)
         setRecommended(!!p.recommended)
         setVisible(p.visible !== false)
@@ -110,6 +118,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
       currency: currency.trim().toUpperCase(),
       image_url: imageUrl.trim() === '' ? null : imageUrl,
       preview_url: previewUrl.trim() === '' ? null : previewUrl,
+      download_url: downloadUrl.trim() === '' ? null : downloadUrl,
       sort_order: sortOrder,
       recommended,
       visible,
@@ -147,7 +156,7 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
 
   async function onPickImage(file: File | undefined) {
     if (!file) return
-    setUploading(true)
+    setUploadingImage(true)
     setErr(null)
     try {
       const fd = new FormData()
@@ -160,8 +169,28 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
       setErr(message)
       showToast(message, 'error')
     } finally {
-      setUploading(false)
+      setUploadingImage(false)
       if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  async function onPickArchive(file: File | undefined) {
+    if (!file) return
+    setUploadingArchive(true)
+    setErr(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await adminApiUpload<{ url: string }>('/api/admin/uploads/archive', fd)
+      setDownloadUrl(res.url.replace(/\?.*$/, ''))
+      showToast('压缩包上传成功', 'success')
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : '上传失败'
+      setErr(message)
+      showToast(message, 'error')
+    } finally {
+      setUploadingArchive(false)
+      if (archiveFileRef.current) archiveFileRef.current.value = ''
     }
   }
 
@@ -218,16 +247,44 @@ export function ProductFormPanel({ productId, onCancel, onSaved }: ProductFormPa
               <button
                 type="button"
                 className="btn"
-                disabled={uploading}
+                disabled={uploadingImage}
                 onClick={() => fileRef.current?.click()}
               >
-                {uploading ? '上传中…' : '上传'}
+                {uploadingImage ? '上传中…' : '上传'}
               </button>
             </div>
           </label>
           <label>
             预览地址（可选）
             <input type="url" value={previewUrl} onChange={(e) => setPreviewUrl(e.target.value)} placeholder="https://…" />
+          </label>
+          <label className="form-grid__full">
+            下载包（可选，已购用户可下载）
+            <div className="row gap" style={{ alignItems: 'stretch' }}>
+              <input
+                type="text"
+                value={downloadUrl}
+                onChange={(e) => setDownloadUrl(e.target.value)}
+                placeholder="https://… 或 /uploads/packages/…"
+                style={{ flex: 1 }}
+              />
+              <input
+                ref={archiveFileRef}
+                type="file"
+                accept={ARCHIVE_ACCEPT}
+                hidden
+                onChange={(e) => void onPickArchive(e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                className="btn"
+                disabled={uploadingArchive}
+                onClick={() => archiveFileRef.current?.click()}
+              >
+                {uploadingArchive ? '上传中…' : '上传压缩包'}
+              </button>
+            </div>
+            <span className="muted small">支持 ZIP、RAR、7Z、TAR 及 GZ/BZ2/XZ/ZST 等格式，最大 100MB</span>
           </label>
         </div>
       </div>

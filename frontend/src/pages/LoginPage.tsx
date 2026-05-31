@@ -4,6 +4,7 @@ import { ApiError, apiFetch } from '../api/http'
 import type { TokenResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
 
 export default function LoginPage() {
   const nav = useNavigate()
@@ -42,6 +43,7 @@ export default function LoginPage() {
 
   return (
     <div className="container auth-page-simple">
+      <PageMeta title="登录" description={PAGE_DESCRIPTIONS.login} noIndex />
       <div className="component-card auth-form-card">
         <div className="component-title auth-form-card-title">
           <h2>
@@ -71,6 +73,9 @@ export default function LoginPage() {
               required
             />
           </label>
+          <p className="auth-forgot-row">
+            <Link to="/forgot-password">忘记密码？</Link>
+          </p>
           <button type="submit" className="btn btn-register auth-submit-wide" disabled={submitting}>
             {submitting ? '登录中…' : '登录'}
           </button>

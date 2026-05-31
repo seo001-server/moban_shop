@@ -26,6 +26,7 @@ export type Product = {
   currency: string
   image_url?: string | null
   preview_url?: string | null
+  download_url?: string | null
   sort_order: number
   recommended: boolean
   visible: boolean

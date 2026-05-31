@@ -18,18 +18,29 @@ import (
 const bcryptCost = bcrypt.DefaultCost
 
 type Handler struct {
-	Q         *db.Queries
-	JWTSecret []byte
-	JWTIssuer string
-	AccessTTL time.Duration
+	Q                       *db.Queries
+	DB                      *sql.DB
+	JWTSecret               []byte
+	JWTIssuer               string
+	AccessTTL               time.Duration
+	PasswordResetTTL        time.Duration
+	PasswordResetExposeLink bool
+	FrontendBaseURL         string
 }
 
-func NewHandler(q *db.Queries, secret []byte, issuer string, accessTTL time.Duration) *Handler {
+func NewHandler(q *db.Queries, dbConn *sql.DB, secret []byte, issuer string, accessTTL, resetTTL time.Duration, exposeResetLink bool, frontendBaseURL string) *Handler {
+	if resetTTL <= 0 {
+		resetTTL = time.Hour
+	}
 	return &Handler{
-		Q:         q,
-		JWTSecret: secret,
-		JWTIssuer: issuer,
-		AccessTTL: accessTTL,
+		Q:                       q,
+		DB:                      dbConn,
+		JWTSecret:               secret,
+		JWTIssuer:               issuer,
+		AccessTTL:               accessTTL,
+		PasswordResetTTL:        resetTTL,
+		PasswordResetExposeLink: exposeResetLink,
+		FrontendBaseURL:         frontendBaseURL,
 	}
 }
 

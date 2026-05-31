@@ -24,13 +24,14 @@ func NewHandler(q *db.Queries) *Handler {
 }
 
 type cartLineJSON struct {
-	ID         uint64  `json:"id"`
-	Slug       string  `json:"slug"`
-	Title      string  `json:"title"`
-	PriceMinor int64   `json:"price_minor"`
-	Currency   string  `json:"currency"`
-	ImageURL   *string `json:"image_url"`
-	Qty        uint32  `json:"qty"`
+	ID             uint64  `json:"id"`
+	Slug           string  `json:"slug"`
+	Title          string  `json:"title"`
+	PriceMinor     int64   `json:"price_minor"`
+	Currency       string  `json:"currency"`
+	ImageURL       *string `json:"image_url"`
+	ProductVisible bool    `json:"product_visible"`
+	Qty            uint32  `json:"qty"`
 }
 
 type cartListJSON struct {
@@ -199,43 +200,56 @@ func (h *Handler) listJSON(ctx context.Context, uid uint64) ([]cartLineJSON, err
 	out := make([]cartLineJSON, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, cartLineJSON{
-			ID:         row.ProductID,
-			Slug:       row.Slug,
-			Title:      row.Title,
-			PriceMinor: row.PriceMinor,
-			Currency:   row.Currency,
-			ImageURL:   nullStringPtr(row.ImageUrl),
-			Qty:        row.Quantity,
+			ID:             row.ProductID,
+			Slug:           row.Slug,
+			Title:          row.Title,
+			PriceMinor:     row.PriceMinor,
+			Currency:       row.Currency,
+			ImageURL:       nullStringPtr(row.ImageUrl),
+			ProductVisible: row.ProductVisible,
+			Qty:            row.Quantity,
 		})
 	}
 	return out, nil
 }
 
 func (h *Handler) addQuantity(ctx context.Context, uid, productID uint64, delta uint32) error {
-	if _, err := h.Q.GetProductByID(ctx, productID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return echo.NewHTTPError(http.StatusBadRequest, "商品不存在")
-		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
-	}
 	existing, err := h.Q.GetCartItemByUserProduct(ctx, db.GetCartItemByUserProductParams{
 		UserID:    uid,
 		ProductID: productID,
 	})
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			_, err = h.Q.InsertCartItem(ctx, db.InsertCartItemParams{
-				UserID:    uid,
-				ProductID: productID,
-				Quantity:  delta,
-			})
-			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, "加入购物车失败")
-			}
-			return nil
+		if !errors.Is(err, sql.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusInternalServerError, "查询购物车失败")
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "查询购物车失败")
+		if _, err := h.Q.GetProductByID(ctx, productID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return echo.NewHTTPError(http.StatusBadRequest, "商品不存在或已下架")
+			}
+			return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
+		}
+		_, err = h.Q.InsertCartItem(ctx, db.InsertCartItemParams{
+			UserID:    uid,
+			ProductID: productID,
+			Quantity:  delta,
+		})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "加入购物车失败")
+		}
+		return nil
 	}
+
+	p, err := h.Q.GetProductByIDInternal(ctx, productID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusBadRequest, "商品不存在")
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
+	}
+	if !p.Visible && delta > 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "该模板已下架，无法增加数量")
+	}
+
 	nextQty := existing.Quantity + delta
 	if _, err := h.Q.UpdateCartItemQuantity(ctx, db.UpdateCartItemQuantityParams{
 		Quantity:  nextQty,
@@ -248,30 +262,42 @@ func (h *Handler) addQuantity(ctx context.Context, uid, productID uint64, delta 
 }
 
 func (h *Handler) setAbsoluteQuantity(ctx context.Context, uid, productID uint64, qty uint32) error {
-	if _, err := h.Q.GetProductByID(ctx, productID); err != nil {
+	existing, err := h.Q.GetCartItemByUserProduct(ctx, db.GetCartItemByUserProductParams{
+		UserID:    uid,
+		ProductID: productID,
+	})
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusInternalServerError, "查询购物车失败")
+		}
+		if _, err := h.Q.GetProductByID(ctx, productID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return echo.NewHTTPError(http.StatusBadRequest, "商品不存在或已下架")
+			}
+			return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
+		}
+		_, err = h.Q.InsertCartItem(ctx, db.InsertCartItemParams{
+			UserID:    uid,
+			ProductID: productID,
+			Quantity:  qty,
+		})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "加入购物车失败")
+		}
+		return nil
+	}
+
+	p, err := h.Q.GetProductByIDInternal(ctx, productID)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return echo.NewHTTPError(http.StatusBadRequest, "商品不存在")
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "查询商品失败")
 	}
-	_, err := h.Q.GetCartItemByUserProduct(ctx, db.GetCartItemByUserProductParams{
-		UserID:    uid,
-		ProductID: productID,
-	})
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			_, err = h.Q.InsertCartItem(ctx, db.InsertCartItemParams{
-				UserID:    uid,
-				ProductID: productID,
-				Quantity:  qty,
-			})
-			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, "加入购物车失败")
-			}
-			return nil
-		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "查询购物车失败")
+	if !p.Visible && qty > existing.Quantity {
+		return echo.NewHTTPError(http.StatusBadRequest, "该模板已下架，无法增加数量")
 	}
+
 	if _, err := h.Q.UpdateCartItemQuantity(ctx, db.UpdateCartItemQuantityParams{
 		Quantity:  qty,
 		UserID:    uid,

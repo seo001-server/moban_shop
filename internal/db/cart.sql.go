@@ -25,7 +25,8 @@ SELECT
   p.title,
   p.price_minor,
   p.currency,
-  p.image_url
+  p.image_url,
+  p.visible AS product_visible
 FROM cart_items ci
 INNER JOIN products p ON p.id = ci.product_id
 WHERE ci.user_id = ?
@@ -33,13 +34,14 @@ ORDER BY ci.updated_at DESC, ci.id DESC
 `
 
 type ListCartItemsByUserRow struct {
-	ProductID  uint64         `json:"product_id"`
-	Quantity   uint32         `json:"quantity"`
-	Slug       string         `json:"slug"`
-	Title      string         `json:"title"`
-	PriceMinor int64          `json:"price_minor"`
-	Currency   string         `json:"currency"`
-	ImageUrl   sql.NullString `json:"image_url"`
+	ProductID      uint64         `json:"product_id"`
+	Quantity       uint32         `json:"quantity"`
+	Slug           string         `json:"slug"`
+	Title          string         `json:"title"`
+	PriceMinor     int64          `json:"price_minor"`
+	Currency       string         `json:"currency"`
+	ImageUrl       sql.NullString `json:"image_url"`
+	ProductVisible bool           `json:"product_visible"`
 }
 
 func (q *Queries) ListCartItemsByUser(ctx context.Context, userID uint64) ([]ListCartItemsByUserRow, error) {
@@ -59,6 +61,7 @@ func (q *Queries) ListCartItemsByUser(ctx context.Context, userID uint64) ([]Lis
 			&i.PriceMinor,
 			&i.Currency,
 			&i.ImageUrl,
+			&i.ProductVisible,
 		); err != nil {
 			return nil, err
 		}

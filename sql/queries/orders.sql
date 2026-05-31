@@ -52,7 +52,9 @@ SELECT
   p.slug AS product_slug,
   p.title AS product_title,
   p.preview_url AS product_preview_url,
+  p.download_url AS product_download_url,
   p.image_url AS product_image_url,
+  p.visible AS product_visible,
   oi.quantity,
   oi.unit_price_minor
 FROM order_items oi

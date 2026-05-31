@@ -13,3 +13,8 @@ SELECT id, user_no, email, password_hash, created_at
 FROM users
 WHERE id = ?
 LIMIT 1;
+
+-- name: UserUpdatePassword :exec
+UPDATE users
+SET password_hash = ?
+WHERE id = ?;

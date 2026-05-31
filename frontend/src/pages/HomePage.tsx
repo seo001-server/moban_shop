@@ -6,6 +6,8 @@ import { useBusinessSections } from '../hooks/useBusinessSections'
 import { FALLBACK_HOMEPAGE, type HomepageContent } from '../lib/homepageContent'
 import { formatMinor } from '../util/money'
 import { normalizeProduct } from '../lib/normalizeProduct'
+import { PageMeta, PAGE_DESCRIPTIONS } from '../components/PageMeta'
+import { ProductImage } from '../components/ProductImage'
 
 export default function HomePage() {
   const { sections: businessSections } = useBusinessSections()
@@ -62,6 +64,7 @@ export default function HomePage() {
 
   return (
     <>
+      <PageMeta title="模板商城" description={PAGE_DESCRIPTIONS.home} />
       <section className="brief">
         <div className="container">
           <h1 dangerouslySetInnerHTML={{ __html: hero.title }} />
@@ -171,7 +174,7 @@ export default function HomePage() {
                   <Link to={`/products/${p.id}`}>
                     <div className="template-img">
                       {p.image_url ? (
-                        <img src={p.image_url} alt={p.title} />
+                        <ProductImage src={p.image_url} alt={p.title} width={320} height={200} />
                       ) : (
                         <div
                           style={{

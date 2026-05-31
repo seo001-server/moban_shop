@@ -557,65 +557,6 @@ footer {
     border-radius: 15px;
 }
 
-.cart-float-btn {
-    position: fixed;
-    right: 32px;
-    bottom: 50%;
-    z-index: 1999;
-    display: flex;
-    align-items: center;
-    background: var(--primary);
-    color: #fff;
-    padding: 14px;
-    border-radius: 32px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
-    font-size: 1.25rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s, width 0.3s, padding 0.3s;
-    text-decoration: none;
-    width: 56px;
-    /* 只显示图标时的宽度 */
-    overflow: visible;
-}
-
-.cart-float-btn:hover {
-    background: var(--secondary);
-    color: #fff;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-    width: 148px;
-    /* 展开后的宽度，可根据实际调整 */
-    padding: 14px 22px 14px 18px;
-}
-
-.cart-float-btn:hover .cart-icon-wrap {
-    margin-right: 10px;
-}
-
-.cart-float-btn:hover .cart-float-text {
-    opacity: 1;
-    margin-left: 6px;
-    max-width: 80px;
-    pointer-events: auto;
-}
-
-.cart-float-btn .cart-icon-wrap {
-    transition: margin 0.3s;
-}
-
-.cart-float-btn .fa-shopping-cart {
-    font-size: 1.4rem;
-}
-
-.cart-float-text {
-    opacity: 0;
-    margin-left: 0;
-    max-width: 0;
-    transition: opacity 0.3s, margin 0.3s, max-width 0.3s;
-    white-space: nowrap;
-    pointer-events: none;
-}
-
 .loader-container {
     position: fixed;
     top: 0;
@@ -670,21 +611,42 @@ footer {
         width: 100%;
         text-align: center;
     }
+}
 
-    .cart-float-btn {
-        right: 12px;
-        bottom: 80px;
-        width: 44px;
-        padding: 12px 14px;
-        font-size: 1rem;
-    }
+.product-delisted-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-light);
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
 
-    .cart-float-btn:hover {
-        width: 44px;
-        padding: 12px 14px;
-    }
+.cart-item-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
 
-    .cart-float-text {
-        display: none;
-    }
+.cart-body-tr.is-delisted,
+.cart-item-card.is-delisted {
+    opacity: 0.92;
+}
+
+.cart-body-tr.is-delisted .cart-img,
+.cart-item-card.is-delisted .cart-img,
+.cart-item-card.is-delisted .cart-img-placeholder {
+    opacity: 0.72;
+}
+
+.cart-item-card-title.is-static {
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: none;
+    pointer-events: none;
+    cursor: default;
 }
