@@ -75,7 +75,7 @@ moban_shop/
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/<你的用户名>/moban_shop.git
+git clone https://github.com/seo001-server/moban_shop.git
 cd moban_shop
 ```
 
